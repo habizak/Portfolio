@@ -1,69 +1,89 @@
+@font-face {
+  font-family: 'Mona Sans';
+  src:
+    url('Mona-Sans.woff2') format('woff2 supports variations'),
+    url('Mona-Sans.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-stretch: 75% 125%;
+}
+
+html {
+  font-family: 'Mona Sans';
+  line-height: 1.6;
+}
+
 body {
-    font-family: sans-serif;
-    background-color: #ccffcc;
-    color: #1a1a1a;
-    margin: 0;
-    padding: 40px;
-  }
+  font-family: 'Mona Sans';
+  background-color: #ccffcc;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 40px;
+}
   
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 40px;
-  }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
   
-  header h1 {
-    font-size: 1rem;
-    font-weight: normal;
-  }
+header h1 {
+  font-size: 1rem;
+  font-weight: normal;
+}
   
-  nav {
-    text-align: right;
-  }
+nav {
+  text-align: right;
+}
   
-  nav a {
-    color: #1a1a1a;
-    text-decoration: none;
-    margin-left: 20px;
-    font-size: 0.9rem;
-  }
+nav a {
+  color: #1a1a1a;
+  text-decoration: none;
+  margin-left: 20px;
+  font-size: 0.9rem;
+}
   
-  .hero {
-    font-size: 1.5rem;
-    line-height: 1.6;
-    max-width: 720px;
-    margin-bottom: 60px;
-  }
+.hero {
+  font-size: 2rem;
+  line-height: 1.6;
+  max-width: 100vw;
+  margin-bottom: 60px;
+}
   
-  .hero a {
-    color: #005500;
-    text-decoration: underline;
-  }
+.hero a {
+  color: #005500;
+  text-decoration: underline;
+}
   
-  section h2 {
-    font-size: 1.4rem;
-    margin-top: 60px;
-    margin-bottom: 20px;
-  }
+section h2 {
+  font-size: 1.4rem;
+  margin-top: 60px;
+  margin-bottom: 20px;
+}
   
-  .projects p {
-    margin: 5px 0 20px 0;
-  }
+.projects p {
+  margin: 5px 0 20px 0;
+}
   
-  .projects p span {
-    font-weight: bold;
-  }
+.projects p span {
+  font-weight: bold;
+}
   
-  .about-me {
-    font-size: 1.2rem;
-  }
+.about-me {
+  font-size: 1.2rem;
+}
   
-  footer {
-    margin-top: 60px;
-    font-size: 0.9rem;
-    display: flex;
-    justify-content: space-between;
-    color: #333;
-  }
+footer {
+  margin-top: 60px;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  color: #333;
+}
+  
+.center {
+  width: 640px;
+  margin: 0 auto;
+}
+  
   
