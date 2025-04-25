@@ -44,7 +44,8 @@ nav p {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 @media (min-width: 768px) {
@@ -60,6 +61,7 @@ nav p {
     flex-direction: row;
     gap: 40px;
     align-items: center;
+    justify-content: flex-start;
   }
 }
   
