@@ -13,6 +13,10 @@ html {
   margin: 0;
 }
 
+p {
+  line-height: 1.6;
+}
+
 body {
   font-family: 'Mona Sans';
   background-color: #99FFAA;
@@ -33,7 +37,14 @@ nav {
   gap: 20px;
   margin-bottom: 40px;
   height: auto;
-  font-size: small;
+  font-size: 0.7rem;
+}
+
+nav p,
+nav a,
+nav .contact {
+  font-size: 0.7rem;
+  letter-spacing: 0.01rem;
 }
 
 nav p {
@@ -105,6 +116,7 @@ nav a {
 .hero {
   font-size: 2.4rem;
   line-height: 1.3;
+  letter-spacing: 0.02rem;
   max-width: 100%;
   margin-bottom: 40px;
 }
@@ -211,14 +223,16 @@ li {
 
 /* Style blockquotes */
 blockquote {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-left: 3px solid #005500;
+  border-left: 3px solid #444; /* Thin grey line */
+  margin: 0 0 0 -20px;
+  padding-left: 2.5em;
+  font-family: 'Libre Baskerville', serif;
+  font-style: italic;
+  color: #444;
 }
 
 blockquote p {
-  margin: 0;
+  margin: 0 0 0 -20px;
 }
 
 /* Improve spacing for mobile */
@@ -232,8 +246,8 @@ blockquote p {
   }
   
   blockquote {
-    margin: 15px 0;
-    padding: 10px;
+    margin: 0 0 0 -20px;
+    padding-left: 2.5em;
   }
 }
   
