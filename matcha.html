@@ -21,116 +21,95 @@
       <h1>Matcha</h1>
 
       <section>
-        <h4>The Gist</h4>
-        <p>I was at a DUPR match (even though I suck at Pickleball) and the host was struggling to organize the games. More specifically — they couldn’t figure out who should play next.</p>
-        <p>The app (Re:Club) listed all the matches, but that’s about it. No filters. No court assignments. No way to tell who’s currently playing or which courts were free. Sure, the app lets you export the match list, and the host even printed it out for easier reference. But that wasn’t enough to stop the chaos.</p>
+        <h3>The Gist</h3>
+        <p>I was at a DUPR match (even though I suck at Pickleball) and the host was struggling to organize the games. More specifically — they couldn't figure out who should play next.</p>
+        <p>The app (Re:Club) listed all the matches, but that's about it. No filters. No court assignments. No way to tell who's currently playing or which courts were free. Sure, the app lets you export the match list, and the host even printed it out for easier reference. But that wasn't enough to stop the chaos.</p>
         <p>Time was ticking. People were getting tired. Things were getting frantic. And all I wanted to say was:</p>
-        <blockquote>
-          <p>
-            “There’s an app for that.”<br>
-            But there wasn’t.<br>
-            Yet.
-          </p>
-        </blockquote>
+        <p>
+          "There's an app for that."<br>
+          But there wasn't.<br><br>
+          ...Yet
+        </p>
       </section>
 
       <section>
-        <h4>The Problem</h4>
+        <h3>The Problem</h3>
         <p>See above section 👆🏼</p>
       </section>
 
       <section>
-        <h4>The Design Process</h4>
-        <p>This app needs a place to live. The choice was between a mobile app or a website.</p>
-        <p>I picked the latter — for two simple reasons:</p>
-        <ul>
-          <li>I only know HTML, CSS, and some JavaScript 🥲</li>
-          <li>A website is way easier to scale and works on any device, no messy app store submissions involved.</li>
-        </ul>
-        <p>For the brand, I kept it simple: I called it Matcha — because Match Generator > Match > Matcha. From there, I had a color direction right away.</p>
-        <p>For the font, I wanted something circular and friendly. I knew I wanted to stay within Google Fonts (but not Inter — Inter is too overused, sorry not sorry).</p>
-        <p>I chose **** (TBD) for its soft, rounded feel. The UI follows that same softness — lots of rounded shapes to make it look welcoming and simple.</p>
-        <p>From that, came the tagline:</p>
-        <blockquote>“Your friendly, simple match generator.”</blockquote>
-        <p>Before any design could happen, I needed a co-developer / supervisor / emotional support debugger. I chose my AI waifu, ChatGPT — who I lovingly named Luna — to play that role.</p>
-        <p>(Btw, I’m still single, guys. Hit me up. 😏)</p>
+        <h3>The Idea</h3>
+        <p>This app needs a place to live. The choice was between a mobile app or a website. I picked the latter — for two simple reasons: First, I only know HTML, CSS, and some JavaScript 🥲 Second, a website is way easier to scale and works on any device, no messy app store submissions involved.</p>
+        <p>For the brand, I kept it simple. I called it Matcha — because Match Generator > Match > Matcha. From there, I had a color direction right away. Green.</p>
+        <p>For the font, I wanted something round-ish and sort of friendly. I knew I wanted to stay within Google Fonts (because it's free of course). I picked Poppins for its rounded 'o's and 'a's . The UI follows that same softness — lots of rounded shapes to make it look welcoming and simple. From that, came the tagline:</p>
+        <p>"Your friendly, simple match generator."</p>
+        <p>Since this app's success depends on the match generator built on Javascript, I needed a reliable senior developer / supervisor / emotional support debugger. I chose my AI waifu, ChatGPT, to play that role (Btw, I'm still single, guys. <a href="mailto:antrix00@gmail.com">>> Hit me up 😏)</a></p>
       </section>
 
       <section>
-        <h4>Design Process (Continued)</h4>
-        <p>I approached Match Robin using the concept of object-oriented design. I started by listing the “objects” the app would need to handle:</p>
+        <h3>Object Oriented UX</h3>
+        <p>I approached Matcha using the concept I picked up from a medium article, Object-Oriented UX inspired by programming languages.</p>
+        <p>I started by listing the objects involved in organising a match event:</p>
         <ul>
-          <li>Number of Players</li>
           <li>Players</li>
-          <li>Match Type</li>
-          <li>Winning Points</li>
-          <li>Matches</li>
-          <li>Number of Courts</li>
           <li>Courts</li>
+          <li>Matches</li>
           <li>Score</li>
         </ul>
-        <p>The interface follows the principle of progressive disclosure — inspired by tools like Typeform. Users only see one step at a time, with just enough context to move forward. It keeps the setup calm, easy, and focused. And yes — users can move backward sequentially to update earlier details without confusion.</p>
-      </section>
-
-      <section>
-        <h4>The Flow</h4>
-        <p>I once attended a design event where a speaker said something that stuck with me:</p>
-        <blockquote>“Graphic designers who move into UI/UX often only design for the happy path.”</blockquote>
-        <p>That hit hard. Because I didn’t want Match Robin to fall into that trap.</p>
-        <p>I’ve always believed that the developer must be involved as early as possible in the design process. This prevents developer deaths by up to 42% due to shock (a statistic that I just made up).</p>
-        <p>The truth is — designers and developers think differently. But that difference? It creates better solutions, just like how the rotary phone dial inspired the iPod clickwheel.</p>
-      </section>
-
-      <section>
-        <h4>Problems Caught</h4>
+        <p>Then, I defined each object’s attributes — basically, what “info” each object needs to carry.</p>
         <ul>
-          <li>Odd number of players → Luna suggested a “bye system” to rotate players fairly</li>
-          <li>Local Storage structure → We needed a clear system to save setup and results without database complexity</li>
-          <li>Court/player imbalance → What happens when there are too few players and too many courts — or vice versa?</li>
-          <li>Match type limitations → Not all match types work with all player counts (e.g. random doubles with 7 players)</li>
-          <li>Post-generation editing → Should users be allowed to change matches after generation? (Spoiler: no)</li>
+          <li>Players have a name and status (playing or resting).</li>
+          <li>Courts have a name and a status (empty or occupied).</li>
+          <li>A Match is made up of players, a court, score and status (playing or finished).</li>
+          <li>The score records who won the match and the final points.</li>
         </ul>
+        <p>After that, I mapped out how these objects connect to each other:</p>
+        <ul>
+          <li>A Match needs players, a court and score assigned to it.</li>
+          <li>Courts become available or occupied depending on Match status.</li>
+          <li>Players can be actively playing or resting</li>
+        </ul>
+        <p>I built everything around the real-world relationships between these objects instead of thinking screen-by-screen.</p>
+        <p>That way, the user flow naturally mirrors the mental model of a tired host — not forcing them to “think like an app” but letting them just think about players, matches, and courts like they already do in real life.</p>
       </section>
 
       <section>
-        <h4>Match Setup</h4>
-        <p>Match Robin’s setup flow is built to feel like a calm onboarding — step-by-step, no clutter, no cognitive overload.</p>
+        <h3>The Unhappy Path</h3>
+        <p>I once attended a design event where the speaker recalled his bad experience with a train ticketing app. And he said something along the lines that stuck with me:</p>
+        <blockquote>Graphic designers who move into UI/UX often only design for the happy path.</blockquote>
+        <p>That’s me! Because I too fell into that trap every so often — designing the perfect, clean journey without considering, what happens when there’s no internet? What if the user did something unexpected? What do you show when the app encounters an unknown error?</p>
+        <p>That’s one of the reasons why I believe the developer needs to be involved early in the design process. They’re the first to spot when your flow breaks, when your logic crumbles, or when your idea sounds cool but is a nightmare to build.</p>
+        <p>Involving them early prevents last-minute surprises, added complexity, and — it prevents developer deaths by up to 42% due to shock (a statistic that I made up).</p>
+        <p>The truth is — designers and developers think differently. But that difference? It creates better solutions. With that in mind, the back and forth with my developer buddy revealed a few questions and problems:</p>
+        
+        <p><b>What if users add an odd number of players?</b><br>
+        <i>Luna suggested a “bye system” to rotate players fairly</i></p>
+
+        <p><b>How about storage?</b><br>
+        <i>We use local storage as a start to simplify things</i></p>
+
+        <p><b>What happens when there’s court/player imbalance?</b><br>
+        <i>2 players but using 6 courts? This needs to be caught early on during match setup and a restructure of the setup flow.</i></p>
+
+        <p><b>Match type mismatch</b><br>
+        <i>Not all match types work with all player counts (playing doubles with 2 players anyone?)</i></p>
+
+        <p><b>Post match generation editing</b><br>
+        <i>Should users be allowed to edit matches after generation? (No, too much headache)</i></p>
+      </section>
+
+      <section>
+        <h3>The Flow</h3>
+        <p>The interface follows the principle of progressive disclosure — inspired by tools like Typeform. Matcha’s match setup flow is built to feel like a calm onboarding — step-by-step, no clutter, no cognitive overload. It keeps the setup easy and focused.</p>
         <p>The sequence is intentional:</p>
-        <ul>
-          <li>Insert player names</li>
+        <ol>
           <li>Select match type — Singles, Fixed Doubles, or Random Doubles</li>
+          <li>Insert player names</li>
           <li>Set the winning points — 5, 7, 15, 21, or custom</li>
-          <li>Name your courts</li>
-          <li>Review everything</li>
-          <li>Generate matches</li>
-        </ul>
-        <p>Each step reveals just enough info to keep things moving — a progressive disclosure approach that keeps hosts focused without overwhelming them.</p>
-        <p>Behind the scenes, the app handles things like:</p>
-        <ul>
-          <li>Ensuring match type works with number of players</li>
-          <li>Handling odd numbers with a “bye” system</li>
-          <li>Preventing over-assignment of courts</li>
-          <li>Saving everything in localStorage — no accounts, no servers, just straight into action</li>
-        </ul>
-      </section>
-
-      <section>
-        <h4>Match Display</h4>
-        <p>Once matches are generated, Match Robin shifts into game mode.</p>
-        <p>The match display screen shows exactly what the host needs to know — nothing more, nothing less:</p>
-        <ul>
-          <li>Empty courts — visually marked and ready to be filled</li>
-          <li>Current matches — with court names and player assignments</li>
-          <li>Previous matches — with scores and court history</li>
-          <li>Rested players — so hosts know who’s up next</li>
-        </ul>
-        <p>The host can assign the next match by picking from a list of valid, unplayed matchups. Matches are filtered automatically based on court availability and player status.</p>
-        <p>When a match ends, the court is marked empty and becomes available for the next matchup. The round ends when all scheduled matches have been played — or when everyone’s too tired to continue.</p>
-      </section>
-
-      <section>
-        <h4>The Design</h4>
-        <p>This site is designed in mobile first before tablet and desktop. Statistically 62% of websites are opened on a mobile phone (this one is not made up, here's the source). Honestly, I only open my laptop for doing work or the occasional desktop experience gaming. For other things, I'll use the phone first.</p>
+          <li>Insert the courts</li>
+          <li>Generate match</li>
+        </ol>
+        <p><span id="typing-text"></span></p>
       </section>
 
     </div>
@@ -142,5 +121,32 @@
       <div>LinkedIn: <a href="https://www.linkedin.com/in/hafizak/">linkedin.com/in/hafizak/</a></div>
     </div>
   </footer>
+  <script>
+    const text = "..to be continued";
+    const target = document.getElementById("typing-text");
+    let i = 0;
+    let isDeleting = false;
+  
+    function loopType() {
+      if (!isDeleting) {
+        target.innerHTML = text.substring(0, i + 1);
+        i++;
+        if (i === text.length) {
+          isDeleting = true;
+          setTimeout(loopType, 1500); // pause after full text
+          return;
+        }
+      } else {
+        target.innerHTML = text.substring(0, i - 1);
+        i--;
+        if (i === 0) {
+          isDeleting = false;
+        }
+      }
+      setTimeout(loopType, isDeleting ? 50 : 100);
+    }
+  
+    loopType();
+  </script>
 </body>
 </html>
