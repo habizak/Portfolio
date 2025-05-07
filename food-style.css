@@ -165,9 +165,10 @@ section p {
     max-width: 900px; /* Match your other content width */
     margin: 40px auto 0; /* Center it */
     display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
     }
-    
+
     .columns {
         gap: 15px;
     }
