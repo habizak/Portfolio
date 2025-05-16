@@ -21,7 +21,7 @@
     }
     
     main {
-      max-width: 440px;
+      max-width: 480px;
       margin: 0 auto;
     }
     
@@ -52,6 +52,7 @@
     button {
         padding: 12px;
         margin-top: 24px;
+        margin-bottom: 40px;
         border: none;
         border-radius: 24px;
         font-size: medium;
@@ -71,39 +72,44 @@
     .match-box {
       display: flex;
       justify-content: space-between;
-      padding: 0.5rem 1rem;
+      align-items: center;
+      padding: 24px;
       background: #f9f9f9;
       border-radius: 8px;
       margin: 0.5rem 0;
       font-weight: bold;
     }
     
+    .team {
+        font-size: 1.4rem;
+    }
+
     .vs {
-      color: #e74c3c;
+        font-size: small;
+        color: #e74c3c;
     }
     
     .court {
-      color: #16a085;
+      color: #A09F9F;
+    }
+
+    .round-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .round-title {
+      font-size: 1rem;
       font-weight: bold;
     }
     
     .resting {
-      background-color: #eee;
-      border-radius: 5px;
       padding: 0.5rem;
       margin-top: 0.5rem;
     }
-    
-    .complete-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.75rem;
-    }
-    
-    .complete-label input[type="checkbox"] {
-      transform: scale(1.2);
-    }
+  
   </style>
 </head>
 <body>
@@ -181,17 +187,16 @@
         const resting = playerInput.filter(p => !allPlaying.includes(p))
 
         html += `<div class="round">
-          <h2>Round ${i + 1}</h2>
-          <div class="match-box">
-            <div class="team">Team 1: ${team1[0]} & ${team1[1]}</div>
-            <div class="vs">VS</div>
-            <div class="team">Team 2: ${team2[0]} & ${team2[1]}</div>
+          <div class="round-header">
+            <span class="round-title">Round ${i + 1}</span>
+            <span class="court"> ${courtName}</span>
           </div>
-          <div class="court">Court: ${courtName}</div>
-          <div class="resting">Resting Players: ${resting.join(', ')}</div>
-          <label class="complete-label">
-            <input type="checkbox"> Match completed
-          </label>
+          <div class="match-box">
+            <div class="team">${team1[0]} & ${team1[1]}</div>
+            <div class="vs">VS</div>
+            <div class="team">${team2[0]} & ${team2[1]}</div>
+          </div>
+          <div class="resting">Rest: ${resting.join(', ')}</div>
         </div>`
       }
 
