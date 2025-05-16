@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Matcha Lite</title>
+  <style>
+    *,
+        *::before,
+        *::after {
+        box-sizing: border-box;
+        }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      padding: 2rem;
+      background: #FEFDED;
+    }
+    
+    main {
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    
+    label {
+        display: block;
+        font-size: larger;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+    
+    input, textarea {
+      display: block;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+
+    input {
+        background-color: #FEFDED;
+        font-weight: 100;
+        font-size: 2rem;
+        border: none;
+    }
+
+    textarea:focus, input:focus {
+        outline: none;
+    }
+
+    button {
+        padding: 12px;
+        margin-top: 24px;
+        border: none;
+        border-radius: 24px;
+        font-size: medium;
+        color: #FEFDED;
+        width: 100%;
+        background-color: #A4C92C;
+    }
+
+    .round {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .match-box {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin: 0.5rem 0;
+      font-weight: bold;
+    }
+    
+    .vs {
+      color: #e74c3c;
+    }
+    
+    .court {
+      color: #16a085;
+      font-weight: bold;
+    }
+    
+    .resting {
+      background-color: #eee;
+      border-radius: 5px;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .complete-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    
+    .complete-label input[type="checkbox"] {
+      transform: scale(1.2);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Matcha Lite</h1>
+    <label>Player Names</label>
+    <input type="text" id="players" placeholder="e.g. Shakir, Hafiz, Hairi, Iqbal, Danizh, Faris" />
+
+    <label>Court Name</label>
+    <input type="text" id="court" placeholder="e.g. Court A" />
+
+    <button onclick="generateMatches()">Generate Matches</button>
+
+    <div id="output"></div>
+  </main>
+  <script>
+    function getAllTeams(players) {
+      const teams = []
+      for (let i = 0; i < players.length; i++) {
+        for (let j = i + 1; j < players.length; j++) {
+          teams.push([players[i], players[j]])
+        }
+      }
+      return teams
+    }
+
+    function areDisjoint(team1, team2) {
+      return !team1.some(p => team2.includes(p))
+    }
+
+    function generateMatches() {
+      const playerInput = document.getElementById('players').value.trim().split(',').map(p => p.trim())
+      const courtName = document.getElementById('court').value.trim()
+      const output = document.getElementById('output')
+
+      if (playerInput.length !== 6) {
+        output.innerHTML = '<p style="color:red;">Please enter exactly 6 player names, separated by commas.</p>'
+        return
+      }
+
+      const teams = getAllTeams(playerInput)
+      const matches = []
+      const usedMatchups = new Set()
+
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+          const team1 = teams[i]
+          const team2 = teams[j]
+          if (areDisjoint(team1, team2)) {
+            const sorted1 = [...team1].sort().join('|')
+            const sorted2 = [...team2].sort().join('|')
+            const matchKey = [sorted1, sorted2].sort().join(' vs ')
+            if (!usedMatchups.has(matchKey)) {
+              usedMatchups.add(matchKey)
+              matches.push({ team1, team2 })
+            }
+          }
+        }
+      }
+
+      // Shuffle matches
+      for (let i = matches.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[matches[i], matches[j]] = [matches[j], matches[i]]
+      }
+
+      // Limit to 10 matches
+      const limitedMatches = matches.slice(0, 10)
+
+      // Generate HTML
+      let html = ''
+      for (let i = 0; i < limitedMatches.length; i++) {
+        const { team1, team2 } = limitedMatches[i]
+        const allPlaying = [...team1, ...team2]
+        const resting = playerInput.filter(p => !allPlaying.includes(p))
+
+        html += `<div class="round">
+          <h2>Round ${i + 1}</h2>
+          <div class="match-box">
+            <div class="team">Team 1: ${team1[0]} & ${team1[1]}</div>
+            <div class="vs">VS</div>
+            <div class="team">Team 2: ${team2[0]} & ${team2[1]}</div>
+          </div>
+          <div class="court">Court: ${courtName}</div>
+          <div class="resting">Resting Players: ${resting.join(', ')}</div>
+          <label class="complete-label">
+            <input type="checkbox"> Match completed
+          </label>
+        </div>`
+      }
+
+      output.innerHTML = html
+    }
+  </script>
+</body>
+</html>
