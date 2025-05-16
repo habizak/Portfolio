@@ -116,6 +116,19 @@
       margin-top: 0.5rem;
     }
   
+    .match-check {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    font-weight: normal;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    }
+
+    .checky {
+        width: 24px;
+    }
+    
   </style>
 </head>
 <body>
@@ -203,6 +216,7 @@
             <div class="team">${team2[0]} & ${team2[1]}</div>
           </div>
           <div class="resting">Rest: ${resting.join(', ')}</div>
+          <label class="match-check"><input class="checky" type="checkbox"> Match complete</label>
         </div>`
       }
 
