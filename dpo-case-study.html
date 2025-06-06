@@ -5,6 +5,55 @@
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* Modal overlay covers viewport with dark translucent and blur */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none; /* hidden by default */
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    /* Container for the image and close button */
+    .modal-content {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    /* The popped-out image */
+    .modal-img {
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Close button in top-right corner */
+    .modal-close {
+      position: absolute;
+      top: -24px;
+      right: -24px;
+      font-size: 1.5rem;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    /* Ensure pop-out images show pointer */
+    .pop-image {
+      cursor: pointer;
+    }
+  </style>
   <title>DPO Management System</title>
 </head>
 <body>
@@ -31,7 +80,7 @@
         <h3>The System</h3>
         <p>Before jumping into design, I work closely with the Business Analyst to understand (translate) the flow, which is in a more than 15 pages long Excel file.</p>
         <p>Basically the whole system is based on stages that starts from a customer order and ends in the final delivery.</p> 
-        <img src="img/mini-metro.png" alt="Mini Metro game interface showing train routes">
+        <img class="pop-image" src="img/mini-metro.png" alt="Mini Metro game interface showing train routes">
         <p>Imagine a customer order as a train. As it moves along the track it will stop at multiple stations (AKA management systems; POMS, SOMS, WMS, DMS) and picks up:</p>
         <ul>
           <li><strong>Passengers:</strong> Information (customer name, address, SKUs, quantity, etc)</li>
@@ -43,7 +92,7 @@
 
       <section>
         <h3>The Problem</h3>
-        <img src="img/the-problem.png" alt="Mini Metro game interface showing train routes">
+        <img class="pop-image" src="img/the-problem.png" alt="Mini Metro game interface showing train routes">
         <ul>
           <li>The legacy UI was inconsistent, unintuitive, and visually outdated.</li>
           <li>Each platform had a different layout and interaction patterns.</li>
@@ -54,7 +103,7 @@
       <section>
         <h3>Design Decisions</h3>
         <p>Since the users have been using the current system for a few years, I don't want to tear everything down and create something new. I came up with a structure that is familiar but improved.</p>
-        <img src="img/the-structure.png" alt="Mini Metro game interface showing train routes">
+        <img class="pop-image" src="img/the-structure.jpg" alt="Mini Metro game interface showing train routes">
         <p>To simplify development and user training, I introduced a shared layout system across all platforms. Each system now uses a consistent structure made up of three page types; <strong>Listing / Details / Form</strong>.</p>
         <p>This consistency made it easier to:</p>
         <ul>
@@ -62,9 +111,9 @@
           <li>Train users faster</li>
           <li>Reduce confusion when switching between systems</li>
         </ul>
-        <img src="img/page-types.png" alt="Mini Metro game interface showing train routes">
+        <img class="pop-image" src="img/page-types.jpg" alt="Mini Metro game interface showing train routes">
         <p>Of course, each system needs to be same-same but different. While the layout stayed consistent, I gave each platform its own colour scheme based on each system's logos — helping users instantly recognise where they are without disrupting the shared structure.</p>
-        <img src="img/result.png" alt="Mini Metro game interface showing train routes">
+        <img class="pop-image" src="img/result.jpg" alt="Mini Metro game interface showing train routes">
       </section>
 
       <section>
@@ -104,6 +153,14 @@
     </div>
   </main>
 
+  <!-- Image Modal Overlay -->
+  <div id="image-modal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <img class="modal-img" src="" alt="Expanded view">
+    </div>
+  </div>
+
   <footer>
     <div class="contact">
       <div>Email: <a href="mailto:antrix00@gmail.com">antrix00@gmail.com</a></div>
@@ -111,4 +168,35 @@
     </div>
   </footer>
 </body>
+<script>
+  // Select the modal elements
+  const modalOverlay = document.getElementById('image-modal');
+  const modalImg = document.querySelector('.modal-img');
+  const closeBtn = document.querySelector('.modal-close');
+
+  // Function to open modal with given image source
+  function openModal(event) {
+    modalImg.src = event.target.src;
+    modalOverlay.style.display = 'flex';
+  }
+
+  // Attach click listener to all pop-out images
+  document.querySelectorAll('.pop-image').forEach(img => {
+    img.addEventListener('click', openModal);
+  });
+
+  // Close when clicking the close button
+  closeBtn.addEventListener('click', () => {
+    modalOverlay.style.display = 'none';
+    modalImg.src = '';
+  });
+
+  // Also close if clicking outside the image (on the overlay background)
+  modalOverlay.addEventListener('click', (event) => {
+    if (event.target === modalOverlay) {
+      modalOverlay.style.display = 'none';
+      modalImg.src = '';
+    }
+  });
+</script>
 </html>
