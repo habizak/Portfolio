@@ -20,8 +20,7 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      justify-content: center;
-      align-items: center;
+      /* Ensure app fills viewport; avoid centering which can affect scrolling */
     }
 
     .app-container {
@@ -30,6 +29,8 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      margin: 0 auto;
+      position: relative;
     }
 
     @media (max-width: 640px) {
@@ -44,7 +45,6 @@
       padding: 1rem;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
       gap: 0px;
     }
     
@@ -180,6 +180,28 @@
     #cmd-input::placeholder {
       color: #C1C1C1;
     }
+
+    #scroll-top-btn {
+      position: absolute;
+      right: 1rem;
+      bottom: 150px;
+      padding: 0.5rem 0.75rem;
+      border-radius: 16px;
+      border: 1px solid #e5e5e5;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      font-family: inherit;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms ease-in-out;
+    }
+    #scroll-top-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
   </style>
 </head>
 <body>
@@ -188,10 +210,12 @@
     <div id="cmd-line">
       <textarea id="cmd-input" placeholder="Start typing or use /commands..." autocomplete="off" autofocus></textarea>
     </div>
+    <button id="scroll-top-btn" aria-label="Scroll to top">Older ↑</button>
   </div>
   <script>
     const cmdInput = document.getElementById('cmd-input');
     const noteContainer = document.getElementById('note-container');
+    const scrollTopBtn = document.getElementById('scroll-top-btn');
     
     // Storage functions
     function saveNotes(notes) {
@@ -212,6 +236,20 @@
     
     let notes = loadNotes();
     let noteIdCounter = notes.length;
+    
+    // Scrolling helpers
+    function isUserNearBottom(container, threshold = 80) {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      return distanceFromBottom <= threshold;
+    }
+    
+    function scrollToBottom(container) {
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function scrollToTop(container) {
+      container.scrollTop = 0;
+    }
     
     // Simple markdown parser
     function parseMarkdown(text) {
@@ -294,7 +332,15 @@
       return block;
     }
     
+    let stickToBottom = true;
+
+    noteContainer.addEventListener('scroll', function() {
+      // Update stickiness based on user position
+      stickToBottom = isUserNearBottom(noteContainer);
+    });
+
     function addNote(content) {
+      const shouldStickToBottom = stickToBottom;
       const note = {
         id: ++noteIdCounter,
         content: content,
@@ -306,8 +352,10 @@
       const noteEl = createNoteElement(note);
       noteContainer.appendChild(noteEl);
       
-      // Auto-scroll to show new note
-      noteContainer.scrollTop = noteContainer.scrollHeight;
+      // Auto-scroll only if user was near bottom when the note was added
+      if (shouldStickToBottom) {
+        scrollToBottom(noteContainer);
+      }
     }
     
     function showSearchResults(query) {
@@ -342,7 +390,7 @@
       showResultsBottomToTop(elements);
       notesBackup = []; // Clear backup after successful search
       isInSearchMode = false;
-      noteContainer.scrollTop = noteContainer.scrollHeight;
+      scrollToBottom(noteContainer);
     }
     
     // Export function
@@ -488,7 +536,7 @@
       });
       
       showResultsBottomToTop(elements);
-      noteContainer.scrollTop = noteContainer.scrollHeight;
+      scrollToBottom(noteContainer);
     }
     
     let isAnimating = false;
@@ -671,7 +719,21 @@
         const noteEl = createNoteElement(note);
         noteContainer.appendChild(noteEl);
       });
+      // Start at bottom initially
+      scrollToBottom(noteContainer);
     }
+
+    // Scroll button behavior
+    noteContainer.addEventListener('scroll', function() {
+      if (noteContainer.scrollTop > 200) {
+        scrollTopBtn.classList.add('visible');
+      } else {
+        scrollTopBtn.classList.remove('visible');
+      }
+    });
+    scrollTopBtn.addEventListener('click', function() {
+      scrollToTop(noteContainer);
+    });
   </script>
 </body>
 </html>
