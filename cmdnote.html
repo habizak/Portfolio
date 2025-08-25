@@ -47,8 +47,11 @@
       flex-direction: column;
       gap: 0px;
     }
+    #note-container .spacer {
+      flex: 1 0 auto;
+    }
     
-    /* Hide scrollbar */
+    /* Hide scrollbar but keep scrolling */
     #note-container::-webkit-scrollbar {
       display: none;
     }
@@ -190,7 +193,7 @@
 </head>
 <body>
   <div class="app-container">
-    <div id="note-container"></div>
+    <div id="note-container"><div id="note-spacer" class="spacer"></div></div>
     <div id="cmd-line">
       <textarea id="cmd-input" placeholder="Start typing or use /commands..." autocomplete="off" autofocus></textarea>
     </div>
@@ -267,6 +270,7 @@
     function addActionButtons(block, note) {
       const actionsDiv = document.createElement('div');
       actionsDiv.className = 'note-actions';
+      actionsDiv.setAttribute('contenteditable', 'false');
       
       // Copy button
       const copyBtn = document.createElement('button');
@@ -355,14 +359,18 @@
     }
     
     let stickToBottom = true;
+    let lastManualScrollAt = 0;
 
     noteContainer.addEventListener('scroll', function() {
       // Update stickiness based on user position
       stickToBottom = isUserNearBottom(noteContainer);
+      lastManualScrollAt = Date.now();
     });
 
     function addNote(content) {
-      const shouldStickToBottom = stickToBottom;
+      // Only auto-stick if user is near bottom and hasn't scrolled manually very recently
+      const recentlyScrolledManually = Date.now() - lastManualScrollAt < 300;
+      const shouldStickToBottom = stickToBottom && !recentlyScrolledManually;
       const note = {
         id: ++noteIdCounter,
         content: content,
@@ -513,7 +521,7 @@
     
     function clearSearchResults() {
       // Clear current view
-      const currentBlocks = Array.from(noteContainer.children);
+      const currentBlocks = Array.from(noteContainer.children).filter(function(el) { return !el.classList.contains('spacer'); });
       
       if (currentBlocks.length > 0) {
         // Delete current results bottom-to-top
@@ -595,7 +603,7 @@
     // Terminal-style animation functions
     function deleteNotesBottomToTop() {
       return new Promise((resolve) => {
-        const noteBlocks = Array.from(noteContainer.children);
+        const noteBlocks = Array.from(noteContainer.children).filter(function(el) { return !el.classList.contains('spacer'); });
         if (noteBlocks.length === 0) {
           resolve();
           return;
