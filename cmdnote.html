@@ -189,6 +189,53 @@
     #cmd-input::placeholder {
       color: #C1C1C1;
     }
+    
+    #exec-btn {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      width: 32px;
+      height: 32px;
+      border: 1px solid #333;
+      background: #ffffff;
+      color: #333;
+      font-size: 14px;
+      font-family: 'PT Mono', monospace;
+      font-weight: normal;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 200ms ease;
+    }
+    
+    #exec-btn:hover {
+      background: #333;
+      color: #ffffff;
+    }
+    
+    #exec-btn:active {
+      transform: scale(0.95);
+    }
+    
+    #note-notification {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      font-size: 14px;
+      font-family: 'PT Mono', monospace;
+      color: #333;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 200ms ease;
+      display: flex;
+      align-items: center;
+      height: 32px;
+    }
+    
+    #note-notification .view-text {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -196,11 +243,52 @@
     <div id="note-container"><div id="note-spacer" class="spacer"></div></div>
     <div id="cmd-line">
       <textarea id="cmd-input" placeholder="Start typing or use /commands..." autocomplete="off" autofocus></textarea>
+      <button id="exec-btn">&gt;</button>
+      <div id="note-notification">[+] Note added. <span class="view-text">View</span></div>
     </div>
   </div>
   <script>
     const cmdInput = document.getElementById('cmd-input');
     const noteContainer = document.getElementById('note-container');
+    const execBtn = document.getElementById('exec-btn');
+    const noteNotification = document.getElementById('note-notification');
+    
+    // Execute button functionality
+    execBtn.addEventListener('click', function() {
+      const input = cmdInput.value;
+      processCommand(input);
+      cmdInput.value = '';
+      cmdInput.classList.remove('command-mode');
+      autoResize(cmdInput);
+    });
+    
+    // Note notification functionality
+    noteNotification.addEventListener('click', function() {
+      scrollToBottom(noteContainer);
+      hideNotification();
+    });
+    
+    function showNotification() {
+      noteNotification.style.opacity = '1';
+      // Auto-hide after 4 seconds
+      setTimeout(() => {
+        hideNotification();
+      }, 4000);
+    }
+    
+    function hideNotification() {
+      noteNotification.style.opacity = '0';
+    }
+    
+    // Generic message function for consistent messaging
+    function showMessage(text, duration = 4000) {
+      noteNotification.innerHTML = text;
+      noteNotification.style.opacity = '1';
+      // Auto-hide after specified duration
+      setTimeout(() => {
+        hideNotification();
+      }, duration);
+    }
     
     // Storage functions
     function saveNotes(notes) {
@@ -385,6 +473,9 @@
       // Auto-scroll only if user was near bottom when the note was added
       if (shouldStickToBottom) {
         scrollToBottom(noteContainer);
+      } else {
+        // Show notification if not auto-scrolling
+        showMessage('[+] Note added. <span class="view-text">View</span>');
       }
     }
     
@@ -396,12 +487,8 @@
       let elements = [];
       
       if (results.length === 0) {
-        const block = document.createElement('div');
-        block.className = 'note-block';
-        block.innerHTML = `No notes found for "${query}"`;
-        const dummyNote = { id: 'search-' + Date.now(), content: block.innerHTML, created: new Date().toISOString() };
-        addActionButtons(block, dummyNote);
-        elements = [block];
+        showMessage(`[!] No notes found for "${query}"`);
+        return;
       } else {
         elements = results.map(note => {
           const block = document.createElement('div');
@@ -426,29 +513,7 @@
     // Export function
     function exportNotes() {
       if (notes.length === 0) {
-        // Show a temporary message
-        const block = document.createElement('div');
-        block.className = 'note-block';
-        block.innerHTML = 'No notes to export';
-        const dummyNote = { id: 'export-' + Date.now(), content: block.innerHTML, created: new Date().toISOString() };
-        addActionButtons(block, dummyNote);
-        
-        block.style.opacity = '0';
-        block.style.transform = 'translateY(20px)';
-        noteContainer.appendChild(block);
-        
-        setTimeout(() => {
-          block.style.opacity = '1';
-          block.style.transform = 'translateY(0)';
-        }, 80);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-          block.style.opacity = '0';
-          block.style.transform = 'translateY(-20px)';
-          setTimeout(() => block.remove(), 300);
-        }, 2000);
-        
+        showMessage('[!] No notes to export');
         return;
       }
       
@@ -478,27 +543,7 @@
       URL.revokeObjectURL(url);
       
       // Show success message with animation
-      const block = document.createElement('div');
-      block.className = 'note-block';
-      block.innerHTML = `Exported ${notes.length} notes to markdown file`;
-      const dummyNote = { id: 'export-' + Date.now(), content: block.innerHTML, created: new Date().toISOString() };
-      addActionButtons(block, dummyNote);
-      
-      block.style.opacity = '0';
-      block.style.transform = 'translateY(20px)';
-      noteContainer.appendChild(block);
-      
-      setTimeout(() => {
-        block.style.opacity = '1';
-        block.style.transform = 'translateY(0)';
-      }, 80);
-      
-      // Remove after 3 seconds
-      setTimeout(() => {
-        block.style.opacity = '0';
-        block.style.transform = 'translateY(-20px)';
-        setTimeout(() => block.remove(), 300);
-      }, 3000);
+      showMessage(`[+] Exported ${notes.length} notes to markdown file`, 3000);
     }
     
     // Command processing
