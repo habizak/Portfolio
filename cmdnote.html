@@ -40,6 +40,7 @@
     .note-block:focus { background: #F5F5F5; }
     .action-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent; color: #222; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 300ms ease; font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 20; }
     .action-btn:hover { background: #333; color: white; }
+    .note-actions, .note-actions * { user-select: none; -webkit-user-select: none; }
     .note-block h1, .note-block h2, .note-block h3 { margin: 0.5em 0; font-weight: bold; }
     .note-block h1 { font-size: 1.2em; } .note-block h2 { font-size: 1.1em; } .note-block h3 { font-size: 1em; }
     .note-block strong { font-weight: bold; } .note-block em { font-style: italic; }
@@ -96,7 +97,13 @@
       [/\*\*(.*?)\*\*/g, '<strong>$1</strong>'],
       [/\*(.*?)\*/g, '<em>$1</em>'],
       [/`([^`]+)`/g, '<code>$1</code>'],
-      [/\[\[(.*?)\]\]/g, '<span class="wiki-link" data-link="$1">$1</span>'],
+      [ /\[\[(.*?)\]\]/g, (m, p1) => {
+          const parts = p1.split('|');
+          const label = (parts.length > 1 ? parts[0] : p1).trim();
+          const raw   = p1.trim();
+          return `<span class="wiki-link" data-link="${raw}">${label}</span>`;
+        }
+      ],
       [/(^|\s)(#\w+)/g, '$1<span class="tag">$2</span>']
     ];
 
@@ -190,48 +197,80 @@
     };
     
     // Create note with inline actions (no individual event listeners)
-    const createNote = note => {
+    const createNote = (note, useDisplayContent = false) => {
       const block = document.createElement('div');
       block.className = 'note-block';
       block.contentEditable = true;
       block.dataset.id = note.id;
-      block.innerHTML = parseMarkdownCached(note.content) + `
+      // Display logic: use displayContent only if useDisplayContent is true (i.e. search render)
+      const originalNote = notes.find(n => n.id === note.id) || note; // fall back
+      const contentToDisplay = useDisplayContent ? (note.displayContent || originalNote.content) : originalNote.content;
+      block.innerHTML = parseMarkdownCached(contentToDisplay) + `
         <div class="note-actions">
           <button class="action-btn" data-action="copy">content_copy</button>
           <button class="action-btn" data-action="delete">delete</button>
         </div>`;
+      const actionsEl1 = block.querySelector('.note-actions');
+      if (actionsEl1) actionsEl1.setAttribute('contenteditable','false');
       const copyBtn1 = block.querySelector('[data-action="copy"]');
       const deleteBtn1 = block.querySelector('[data-action="delete"]');
       if (copyBtn1) copyBtn1.setAttribute('aria-label','Copy note');
       if (deleteBtn1) deleteBtn1.setAttribute('aria-label','Delete note');
+      // Switch to raw text when editing so markup like [[...]] is preserved
+      block.onfocus = () => {
+        if (block.dataset.noedit === '1') {
+          delete block.dataset.noedit; // consume the guard
+          return; // don't switch to raw when clicking links/buttons
+        }
+        block.classList.add('is-editing');
+        // Prefer stored raw content; if it lacks wiki brackets but the rendered DOM has wiki spans,
+        // rebuild raw from the current DOM so [[...]] survives even after search/clear cycles.
+        let raw = (notes.find(n => n.id === note.id) || note).content;
+        const hasBrackets = /\[\[(.|\n)*?\]\]/.test(raw);
+        if (!hasBrackets && block.querySelector('.wiki-link')) {
+          const clone = block.cloneNode(true);
+          clone.querySelectorAll('.note-actions').forEach(a => a.remove());
+          clone.querySelectorAll('.wiki-link').forEach(span => {
+            const txt = document.createTextNode(`[[${span.dataset.link || span.textContent}]]`);
+            span.replaceWith(txt);
+          });
+          raw = (clone.textContent || '').trim();
+        }
+        block.textContent = raw; // show the raw source for editing
+      };
       // Single input handler with proper debouncing
       let inputTimeout;
       block.oninput = () => {
         clearTimeout(inputTimeout);
         inputTimeout = setTimeout(() => {
-          const prev = note.content;
-          note.content = getText(block);
-          mdCache.delete(prev); // Invalidate cache for previous content
+          const target = notes.find(n => n.id === note.id) || note;
+          const prev = target.content;
+          target.content = block.textContent; // raw edited text
+          mdCache.delete(prev);
           save();
         }, 300);
       };
       block.onblur = () => {
-        const newContent = getText(block);
-        if (newContent !== note.content) {
-          mdCache.delete(note.content); // Remove old cache
-          note.content = newContent;
+        const target = notes.find(n => n.id === note.id) || note;
+        const newContent = block.textContent;
+        if (newContent !== target.content) {
+          mdCache.delete(target.content);
+          target.content = newContent;
           save();
         }
-        // Re-render with cached markdown
-        block.innerHTML = parseMarkdownCached(note.content) + `
+        const display = (/* useDisplayContent */ false) ? (note.displayContent || target.content) : target.content;
+        block.innerHTML = parseMarkdownCached(display) + `
           <div class="note-actions">
             <button class="action-btn" data-action="copy">content_copy</button>
             <button class="action-btn" data-action="delete">delete</button>
           </div>`;
+        const actionsEl2 = block.querySelector('.note-actions');
+        if (actionsEl2) actionsEl2.setAttribute('contenteditable','false');
         const copyBtn2 = block.querySelector('[data-action="copy"]');
         const deleteBtn2 = block.querySelector('[data-action="delete"]');
         if (copyBtn2) copyBtn2.setAttribute('aria-label','Copy note');
         if (deleteBtn2) deleteBtn2.setAttribute('aria-label','Delete note');
+        block.classList.remove('is-editing');
       };
       return block;
     };
@@ -243,10 +282,11 @@
         if (!child.classList.contains('spacer')) child.remove();
       });
       const notesToRender = searchResults || notes;
+      const useDisplay = !!searchResults;
       const fragment = document.createDocumentFragment();
       // Batch create all notes
       notesToRender.forEach(note => {
-        fragment.appendChild(createNote(note));
+        fragment.appendChild(createNote(note, useDisplay));
       });
       container.appendChild(fragment);
       syncBottomPadding();
@@ -282,8 +322,8 @@
           .map(note => {
             const contentLC = note.content.toLowerCase();
             if (!contentLC.includes(phrase)) return null;
-            const rx = new RegExp(`(${escapeRegex(phraseMatch[1])})`, 'gi');
-            return { ...note, content: note.content.replace(rx, '**$1**') };
+            // No bolding, just pass content as is
+            return { ...note, displayContent: note.content };
           })
           .filter(Boolean);
       }
@@ -298,12 +338,8 @@
           .map(note => {
             const contentLC = note.content.toLowerCase();
             if (!terms.every(term => contentLC.includes(term))) return null;
-            let highlighted = note.content;
-            terms.forEach(term => {
-              const rx = new RegExp(`(${escapeRegex(term)})`, 'gi');
-              highlighted = highlighted.replace(rx, '**$1**');
-            });
-            return { ...note, content: highlighted };
+            // No bolding, just pass content as is
+            return { ...note, displayContent: note.content };
           })
           .filter(Boolean);
       }
@@ -318,11 +354,11 @@
       const seenIds = new Set();
       
       terms.forEach(term => {
-        const rx = new RegExp(`(${escapeRegex(term)})`, 'gi');
         notes.forEach(note => {
           if (!seenIds.has(note.id) && note.content.toLowerCase().includes(term)) {
             seenIds.add(note.id);
-            results.push({ ...note, content: note.content.replace(rx, '**$1**') });
+            // No bolding, just pass content as is
+            results.push({ ...note, displayContent: note.content });
           }
         });
       });
@@ -462,7 +498,7 @@ Just type and press Enter to add a note.
 **Features**
 - **Edit notes**: Click any note to edit directly
 - **Markdown**: Use **bold**, *italic*, \`code\`, # headings
-- **Wiki links**: [[link text]] becomes clickable
+- **Wiki links**: [[link text]] filters notes; [[Label|https://example.com]] opens external link
 - **Tags**: Use #hashtags in notes
 - **Auto-save**: Everything saves automatically`;
 
@@ -512,6 +548,9 @@ Just type and press Enter to add a note.
           }
         }
       } else if (cmd === '/cls' || cmd === '/clear') {
+        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('note-block')) {
+          document.activeElement.blur();
+        }
         searchResults = null;
         render(true);
       } else if (cmd === '/exp' || cmd === '/export') {
@@ -549,12 +588,20 @@ Just type and press Enter to add a note.
     };
     
     // Event delegation for note actions - single listener handles all notes
+    // Prevent focus→edit when starting interaction on links or action buttons
+    container.addEventListener('pointerdown', e => {
+      if (e.target.closest('.wiki-link, .action-btn, .note-actions')) {
+        const nb = e.target.closest('.note-block');
+        if (nb) nb.dataset.noedit = '1';
+      }
+    });
     container.addEventListener('click', e => {
       const actionBtn = e.target.closest('[data-action]');
       if (!actionBtn) return;
       
       const noteBlock = actionBtn.closest('.note-block');
       if (!noteBlock) return;
+      if (noteBlock && noteBlock.dataset.noedit === '1') delete noteBlock.dataset.noedit;
       
       const noteId = parseInt(noteBlock.dataset.id);
       const note = notes.find(n => n.id === noteId);
@@ -582,8 +629,22 @@ Just type and press Enter to add a note.
     // Wiki link handler
     container.addEventListener('click', e => {
       if (e.target.classList.contains('wiki-link')) {
-        const query = e.target.dataset.link;
-        command(`/search ${query}`);
+        const nb = e.target.closest('.note-block');
+        if (nb && nb.dataset.noedit === '1') delete nb.dataset.noedit;
+        const raw = (e.target.dataset.link || '').trim();
+        let href = null;
+        if (raw.includes('|')) {
+          const [a, b] = raw.split('|').map(s => s.trim());
+          href = /^https?:\/\//i.test(b) ? b : (/^https?:\/\//i.test(a) ? a : null);
+        } else if (/^https?:\/\//i.test(raw)) {
+          href = raw;
+        }
+        if (href) {
+          window.open(href, '_blank', 'noopener');
+          return;
+        }
+        // Fallback: treat as internal search/tag filter
+        command(`/search ${raw}`);
       }
     });
     
