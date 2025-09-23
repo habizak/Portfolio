@@ -91,17 +91,31 @@
       <div class="spacer"></div>
     </div>
     <div id="cmd-line">
-      <textarea id="cmd-input" placeholder="Start typing or use /s, /exp, /cls, /?" autocomplete="off" autofocus></textarea>
+      <textarea id="cmd-input" placeholder="Begin where the silence wants to sing" autocomplete="off" autofocus></textarea>
       <button id="exec-btn">&gt;</button>
       <div id="note-notification" role="status" aria-live="polite">[+] Note added. <span class="view-text">View</span></div>
     </div>
   </div>
   
   <script>
-    let notes = [], searchResults = null;
-    let lastDeleted = null;
-    const $ = id => document.getElementById(id);
-    const container = $('note-container'), input = $('cmd-input'), notification = $('note-notification');
+let notes = [], searchResults = null;
+let lastDeleted = null;
+const $ = id => document.getElementById(id);
+const container = $('note-container'), input = $('cmd-input'), notification = $('note-notification');
+
+// Rotating poetic placeholders (Rumi-inspired)
+const PLACEHOLDERS = [
+  'Let your soul write its whisper.',
+  'Begin where the silence wants to sing.',
+  'Scatter your thoughts like seeds of light.',
+  'Trace what the heart already knows.',
+  'Let your pen be a reed flute.'
+];
+function setRandomPlaceholder() {
+  if (!input) return;
+  const pick = PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
+  input.setAttribute('placeholder', pick);
+}
 
     // Known slash-commands
     const KNOWN_COMMANDS = new Set(['s','search','exp','export','cls','clear','?','dark','light']);
@@ -786,6 +800,7 @@ Just type and press Enter to add a note.
     if (execBtnEl) execBtnEl.setAttribute('aria-label','Execute command');
     // Initialize
     notes = load();
+    setRandomPlaceholder();
     initTheme();
     render(true);
     syncBottomPadding();
