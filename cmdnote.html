@@ -74,7 +74,7 @@
   </div>
   
   <script>
-    let notes = [], searchResults = null, lastDeleted = null;
+    let notes = [], searchResults = null;
     const $ = id => document.getElementById(id);
     const container = $('note-container'), input = $('cmd-input'), notification = $('note-notification');
     
@@ -538,15 +538,10 @@ Just type and press Enter to add a note.
       } else if (action === 'delete') {
         const index = notes.findIndex(n => n.id === noteId);
         if (index !== -1) {
-          // Store deleted note for undo functionality
-          lastDeleted = { note: notes[index], index: index };
-          
           mdCache.delete(note.content); // Clean up cache
           notes.splice(index, 1);
           save();
           render(true);
-          
-          show('[-] Note deleted. <span class="view-text">Undo</span>', 6000);
         }
       }
     });
@@ -576,17 +571,7 @@ Just type and press Enter to add a note.
     
     // Notification click
     notification.onclick = () => {
-      // Check if this is an undo action
-      if (notification.innerHTML.includes('Undo') && lastDeleted) {
-        // Restore the deleted note
-        notes.splice(lastDeleted.index, 0, lastDeleted.note);
-        save();
-        render(true);
-        lastDeleted = null;
-        show('[+] Note restored', 3000);
-      } else {
-        scroll();
-      }
+      scroll();
       notification.style.opacity = '0';
     };
     
