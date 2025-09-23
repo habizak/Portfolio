@@ -23,7 +23,7 @@
       position: relative; 
       padding: var(--gutter) var(--gutter) 3rem var(--gutter); 
       background: #ffffff; 
-      white-space: pre-line; 
+      white-space: pre-wrap; 
       line-height: 1.6; 
       transition: background 300ms ease; 
       outline: none;
@@ -173,16 +173,30 @@
     let cachedStyles = null;
     const autoResize = t => {
       if (!cachedStyles) cachedStyles = getComputedStyle(t);
-      const currentHeight = t.style.height;
-      t.style.height = 'auto';
+      const current = parseFloat(t.style.height) || 0;
       const minH = parseFloat(cachedStyles.minHeight) || 0;
       const maxH = cachedStyles.maxHeight !== 'none' ? parseFloat(cachedStyles.maxHeight) : 999;
-      const targetHeight = Math.min(maxH, Math.max(minH, t.scrollHeight)) + 'px';
-      if (targetHeight !== currentHeight) {
-        t.style.height = targetHeight;
+      // Measure content height without forcing a shrink
+      const contentH = t.scrollHeight;
+      const target = Math.min(maxH, Math.max(minH, contentH));
+      const newH = current ? Math.max(current, target) : target; // only grow while typing
+      if (!current || Math.abs(newH - current) > 0.5) {
+        t.style.height = newH + 'px';
       }
       syncBottomPadding();
     };
+
+    function shrinkComposer(t) {
+      if (!cachedStyles) cachedStyles = getComputedStyle(t);
+      const minH = parseFloat(cachedStyles.minHeight) || 0;
+      const maxH = cachedStyles.maxHeight !== 'none' ? parseFloat(cachedStyles.maxHeight) : 999;
+      // Allow a precise fit only on blur
+      const prev = t.style.height;
+      t.style.height = 'auto';
+      const target = Math.min(maxH, Math.max(minH, t.scrollHeight));
+      t.style.height = target + 'px';
+      if (prev !== t.style.height) syncBottomPadding();
+    }
     
     const getText = el => {
       const clone = el.cloneNode(true);
@@ -241,24 +255,28 @@
       // Single input handler with proper debouncing
       let inputTimeout;
       block.oninput = () => {
+        if (!block.classList.contains('is-editing')) return; // ignore changes when not editing raw
         clearTimeout(inputTimeout);
         inputTimeout = setTimeout(() => {
           const target = notes.find(n => n.id === note.id) || note;
           const prev = target.content;
-          target.content = block.textContent; // raw edited text
+          target.content = getText(block); // properly extract text with line breaks preserved
           mdCache.delete(prev);
           save();
         }, 300);
       };
       block.onblur = () => {
         const target = notes.find(n => n.id === note.id) || note;
-        const newContent = block.textContent;
-        if (newContent !== target.content) {
-          mdCache.delete(target.content);
-          target.content = newContent;
-          save();
+        const wasEditing = block.classList.contains('is-editing');
+        if (wasEditing) {
+          const newContent = getText(block);
+          if (newContent !== target.content) {
+            mdCache.delete(target.content);
+            target.content = newContent; // persist only from raw editor
+            save();
+          }
         }
-        const display = (/* useDisplayContent */ false) ? (note.displayContent || target.content) : target.content;
+        const display = target.content; // always render from true source here
         block.innerHTML = parseMarkdownCached(display) + `
           <div class="note-actions">
             <button class="action-btn" data-action="copy">content_copy</button>
@@ -650,8 +668,10 @@ Just type and press Enter to add a note.
     
     // Input events
     input.oninput = () => autoResize(input);
+    input.onblur = () => shrinkComposer(input);
     input.onkeydown = e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      // Default Enter = newline; submit with Cmd/Ctrl+Enter
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         exec();
       }
