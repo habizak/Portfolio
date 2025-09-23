@@ -10,7 +10,7 @@
     :root { --gutter: 1.5rem; --console-gap-factor: 0.3; --note-bottom-gap: 1.25rem; --actions-size: 28px; --actions-bottom: 8px; }
     * { box-sizing: border-box; }
     html, body { height: 100dvh; overscroll-behavior: none; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
-    body { margin: 0; padding: 0; font-family: 'PT Mono', monospace; font-size: 16px; background: #ffffff; color: #222; display: flex; flex-direction: column; }
+    body { margin: 0; padding: 0; font-family: 'PT Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; font-size: 16px; background: #ffffff; color: #222; display: flex; flex-direction: column; }
     .app-container { width: 100vw; max-width: 100vw; height: 100dvh; display: flex; flex-direction: column; margin: 0; position: relative; }
     @media (min-width: 641px) { .app-container { width: 100%; max-width: 600px; margin: 0 auto; } }
     #note-container { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-gutter: stable both-edges; }
@@ -63,6 +63,26 @@
     #exec-btn:focus { outline: none; }
     #note-notification { grid-area: note; font-size: 16px; font-family: 'PT Mono', monospace; color: #333; cursor: pointer; opacity: 0; transition: opacity 200ms ease; display: flex; align-items: center; min-height: 32px; padding-inline-start: 4px; }
     #note-notification .view-text { text-decoration: underline; }
+
+    /* Dark theme overrides */
+    body.theme-dark { background: #0f1115; color: #e6e6e6; }
+    html.theme-dark { background: #0f1115; }
+    .theme-dark .app-container { background: #0f1115; }
+    .theme-dark #note-container { background: #0f1115; }
+    .theme-dark .note-block { background: #111418; color: #e6e6e6; }
+    .theme-dark .note-block:focus { background: #24292F; }
+    .theme-dark .note-block code { background: #1b2029; }
+    .theme-dark .note-block pre { background: #1b2029; }
+    .theme-dark .wiki-link { color: #7abaff; }
+    .theme-dark .tag { color: #aaa; }
+    .theme-dark #cmd-line { background: #111418; }
+    .theme-dark #cmd-input { color: #e6e6e6; caret-color: #e6e6e6; }
+    .theme-dark #cmd-input::placeholder { color: #7a7f87; }
+    .theme-dark #exec-btn { border-color: #ddd; background: #111418; color: #ddd; }
+    .theme-dark #exec-btn:hover { background: #ffffff; color: #111418; }
+    .theme-dark #note-notification { color: #ddd; }
+    .theme-dark .action-btn { color: #ddd; }
+    .theme-dark .action-btn:hover { background: #ffffff; color: #111418; }
   </style>
 </head>
 <body>
@@ -79,11 +99,12 @@
   
   <script>
     let notes = [], searchResults = null;
+    let lastDeleted = null;
     const $ = id => document.getElementById(id);
     const container = $('note-container'), input = $('cmd-input'), notification = $('note-notification');
 
     // Known slash-commands
-    const KNOWN_COMMANDS = new Set(['s','search','exp','export','cls','clear','?']);
+    const KNOWN_COMMANDS = new Set(['s','search','exp','export','cls','clear','?','dark','light']);
     const isKnownCommandStart = (text) => {
       const t = text.trim();
       if (!t.startsWith('/')) return false;
@@ -121,6 +142,9 @@
       for (let [regex, replacement] of mdRegex) {
         html = html.replace(regex, replacement);
       }
+      if (mdCache.size > 500) {
+        mdCache.clear(); // simple cap
+      }
       mdCache.set(text, html);
       return html;
     };
@@ -132,6 +156,10 @@
       saveTimeout = setTimeout(() => {
         try {
           localStorage.setItem('cmdnotes', JSON.stringify(notes));
+          const approxSize = JSON.stringify(notes).length / 1024 / 1024;
+          if (approxSize > 4) {
+            show('[!] Storage nearly full. Please export and clear old notes.', 6000);
+          }
         } catch (e) {
           console.warn('Could not save notes:', e);
         }
@@ -155,6 +183,25 @@
     };
     
     const scroll = () => requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
+
+    // Theme helpers
+    function applyTheme(mode) {
+      const enableDark = mode === 'dark';
+      document.body.classList.toggle('theme-dark', enableDark);
+      try { localStorage.setItem('cmdnote_theme', enableDark ? 'dark' : 'light'); } catch {}
+      show(enableDark ? '[+] Dark mode on' : '[+] Light mode on', 2000);
+    }
+    function initTheme() {
+      // Restore stored preference; fallback to system preference
+      let stored = null;
+      try { stored = localStorage.getItem('cmdnote_theme'); } catch {}
+      if (stored === 'dark' || stored === 'light') {
+        document.body.classList.toggle('theme-dark', stored === 'dark');
+        return;
+      }
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.body.classList.toggle('theme-dark', !!prefersDark);
+    }
     
     // Check if user is at the bottom of the scroll container
     const isAtBottom = () => {
@@ -447,7 +494,9 @@
       },
       clear: (notes, args) => {
         return notes; // Keep long form for compatibility
-      }
+      },
+      dark: (notesArg, _args) => { applyTheme('dark'); return notesArg; },
+      light: (notesArg, _args) => { applyTheme('light'); return notesArg; }
     };
 
     const runPipeline = (input, allNotes) => {
@@ -488,6 +537,23 @@
     const command = input => {
       const cmd = input.trim();
 
+      // Escape: if note starts with //, treat as literal text (strip one /)
+      if (cmd.startsWith('//')) {
+        const wasAtBottom = isAtBottom();
+        notes.push({
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          content: cmd.slice(1), // remove only one slash
+          created: new Date().toISOString()
+        });
+        save();
+        searchResults = null;
+        render(wasAtBottom);
+        if (!wasAtBottom) {
+          show('[+] Note added. <span class="view-text">View</span>');
+        }
+        return;
+      }
+
       // Handle help early so it doesn't get parsed as a pipeline
       if (cmd === '/?') {
         const wasAtBottom = isAtBottom();
@@ -500,6 +566,8 @@ Just type and press Enter to add a note.
 /s query - Search notes (work, life OR work+urgent AND "exact phrase")
 /exp [txt] - Export current view (markdown default, txt for plain text)
 /cls - Clear search, show all notes
+/dark - Switch to dark mode
+/light - Switch to light mode
 /? - Show this help
 
 **Examples**
@@ -521,11 +589,18 @@ Just type and press Enter to add a note.
 - **Tags**: Use #hashtags in notes
 - **Auto-save**: Everything saves automatically`;
 
-        notes.push({ id: Date.now(), content: helpContent, created: new Date().toISOString() });
+        notes.push({ id: Date.now() + Math.floor(Math.random() * 1000), content: helpContent, created: new Date().toISOString() });
         save();
         searchResults = null;
         render(wasAtBottom);
         if (!wasAtBottom) { show('[+] Help note added. <span class="view-text">View</span>'); }
+        return;
+      }
+
+      // Theme commands: explicit, no toggle
+      if (cmd === '/dark' || cmd === '/light') {
+        applyTheme(cmd === '/dark' ? 'dark' : 'light');
+        render(false); // keep current view
         return;
       }
 
@@ -539,7 +614,7 @@ Just type and press Enter to add a note.
         if (!allKnown) {
           // Not a real pipeline — store as a normal note
           const wasAtBottom = isAtBottom();
-          notes.push({ id: Date.now(), content: cmd, created: new Date().toISOString() });
+          notes.push({ id: Date.now() + Math.floor(Math.random() * 1000), content: cmd, created: new Date().toISOString() });
           save();
           searchResults = null;
           render(wasAtBottom);
@@ -584,7 +659,7 @@ Just type and press Enter to add a note.
         const wasAtBottom = isAtBottom();
 
         notes.push({
-          id: Date.now(),
+          id: Date.now() + Math.floor(Math.random() * 1000),
           content: cmd,
           created: new Date().toISOString()
         });
@@ -637,10 +712,12 @@ Just type and press Enter to add a note.
       } else if (action === 'delete') {
         const index = notes.findIndex(n => n.id === noteId);
         if (index !== -1) {
-          mdCache.delete(note.content); // Clean up cache
+          lastDeleted = { note, index }; // store deleted
+          mdCache.delete(note.content);
           notes.splice(index, 1);
           save();
-          render(true);
+          render(false);
+          show('[!] Note deleted. <span class="view-text">Undo</span>', 5000);
         }
       }
     });
@@ -686,6 +763,14 @@ Just type and press Enter to add a note.
     
     // Notification click
     notification.onclick = () => {
+      if (lastDeleted) {
+        notes.splice(lastDeleted.index, 0, lastDeleted.note);
+        save();
+        render(false);
+        lastDeleted = null;
+        notification.style.opacity = '0';
+        return;
+      }
       scroll();
       notification.style.opacity = '0';
     };
@@ -701,6 +786,7 @@ Just type and press Enter to add a note.
     if (execBtnEl) execBtnEl.setAttribute('aria-label','Execute command');
     // Initialize
     notes = load();
+    initTheme();
     render(true);
     syncBottomPadding();
   </script>
