@@ -476,11 +476,12 @@
         
         <main class="ctds-main">
             <div class="ctds-field ctds-field--time is-target">
-                <label class="ctds-label" for="timeInput">HH:MM:SS</label>
+                <label class="ctds-label" for="timeInput" id="timeLabel">HH:MM:SS</label>
                 <input type="text" 
                        class="ctds-value" 
                        id="timeInput" 
                        placeholder="00:00:00"
+                       aria-describedby="timeLabel"
                        aria-disabled="true">
             </div>
 
@@ -490,6 +491,7 @@
                        class="ctds-value" 
                        id="distanceInput" 
                        placeholder="00.00"
+                       aria-describedby="distanceLabel"
                        inputmode="decimal">
             </div>
 
@@ -499,6 +501,7 @@
                        class="ctds-value" 
                        id="speedInput" 
                        placeholder="00.00"
+                       aria-describedby="speedLabel"
                        inputmode="decimal">
             </div>
 
@@ -508,6 +511,7 @@
                        class="ctds-value" 
                        id="paceInput" 
                        placeholder="00:00"
+                       aria-describedby="paceLabel"
                        inputmode="numeric">
             </div>
         </main>
@@ -580,7 +584,27 @@
 
                 this.unitToggle.addEventListener('click', () => this.setUnitSystem('METRIC'));
                 this.imperialToggle.addEventListener('click', () => this.setUnitSystem('IMPERIAL'));
-                this.resetBtn.addEventListener('click', () => this.clear());
+                // Click clears values, long-press (>=500ms) does factory reset
+                let pressTimer = null;
+                const startPress = () => {
+                    clearTimeout(pressTimer);
+                    pressTimer = setTimeout(() => this.factoryReset(), 500);
+                };
+                const cancelPress = () => {
+                    if (pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
+                };
+                this.resetBtn.addEventListener('mousedown', startPress);
+                this.resetBtn.addEventListener('touchstart', startPress, { passive: true });
+                this.resetBtn.addEventListener('mouseup', () => {
+                    if (pressTimer) { cancelPress(); this.clear(); }
+                });
+                this.resetBtn.addEventListener('touchend', () => {
+                    if (pressTimer) { cancelPress(); this.clear(); }
+                });
+                this.resetBtn.addEventListener('mouseleave', cancelPress);
 
                 this.timeBtn.addEventListener('click', () => this.setTarget('TIME'));
                 this.distanceBtn.addEventListener('click', () => this.setTarget('DISTANCE'));
@@ -753,6 +777,17 @@
                 this.speedInput.value = '';
                 this.paceInput.value = '';
 
+                this.updateUI();
+                this.saveState();
+            }
+
+            factoryReset() {
+                this.timeInput.value = '';
+                this.distanceInput.value = '';
+                this.speedInput.value = '';
+                this.paceInput.value = '';
+                this.target = 'TIME';
+                this.unitSystem = 'METRIC';
                 this.updateUI();
                 this.saveState();
             }
