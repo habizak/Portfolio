@@ -40,8 +40,10 @@
             --circle-d: 104px;
             --label-value-gap: 12px;
             --time-top-offset: 24px;
-            --toggles-to-circles: 24px;
-            --circles-bottom: 16px;
+            --toggles-to-circles: 12px;     /* footer rows closer */
+            --circles-bottom: 8px;          /* less air at very bottom */
+            --reset-gap: 12px;              /* gap above reset row */
+            --reset-h: 32px;                /* visual height of reset row */
             --line-height-display: normal;
             --line-height-label: normal;
             --line-height-button: normal;
@@ -58,10 +60,11 @@
             --toggle-py: 8px;
             --circle-stroke: 1px;
 
-            /* Footer height = toggles + gap + circles + bottom safe area */
+            /* Footer height = toggles + gap + circles + gap + reset + bottom safe area */
             --footer-h: calc(
                 var(--toggle-h) + var(--toggles-to-circles) + var(--circle-d) +
-                var(--circles-bottom) + env(safe-area-inset-bottom, 0)
+                var(--reset-gap) + var(--reset-h) + var(--circles-bottom) +
+                env(safe-area-inset-bottom, 0)
             );
 
             /* One field block's fixed height (label + gap + big number) */
@@ -76,8 +79,8 @@
             /* Remaining height available for the four gaps */
             --available: calc(min(100dvh, var(--frame-height)) - var(--stack-fixed));
 
-            /* Dynamic gap: share the leftover evenly; never negative; cap at 16px */
-            --gap-dynamic: clamp(0px, calc(var(--available) / 4), 16px);
+            /* Dynamic gap: share leftover evenly across 4 gaps, cap tighter at 8px */
+            --gap-dynamic: clamp(0px, calc(var(--available) / 4), 8px);
         }
 
         * {
@@ -138,6 +141,7 @@
             align-items:baseline;       /* 20px label + 84px value share baseline */
             gap:12px;                   /* spec gap */
             min-width:0;                /* iOS Safari flex-shrink fix */
+            padding: 0;
         }
 
         .ctds-field--time {
@@ -394,7 +398,7 @@
 
         /* Reset button styling */
         .ctds-reset {
-            margin-top: 24px;
+            margin-top: var(--reset-gap);
             display: flex;
             justify-content: flex-start;
         }
@@ -415,6 +419,7 @@
             cursor: pointer;
             transition: opacity 0.2s ease;
             padding: 8px 0;
+            min-height: var(--reset-h);
         }
 
         .ctds-reset-btn:hover {
