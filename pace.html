@@ -49,7 +49,7 @@
             --letter-spacing-button: 0;
             --label-left: 24px;
             --value-right: 24px;
-            --toggle-mx: 24px;
+            --toggle-mx: 0px;
             --toggle-gap: 0px;
             --toggle-bw: 1px;
             --toggle-br: 0px;
@@ -132,9 +132,12 @@
             flex-shrink: 0; 
         }
 
-        .ctds-field {
-            display: flex;
-            flex-direction: column;
+        .ctds-field{
+            display:flex;
+            justify-content:flex-end;   /* values hug right rail */
+            align-items:baseline;       /* 20px label + 84px value share baseline */
+            gap:12px;                   /* spec gap */
+            min-width:0;                /* iOS Safari flex-shrink fix */
         }
 
         .ctds-field--time {
@@ -146,83 +149,44 @@
             margin-bottom: var(--gap-dynamic);
         }
 
-        /* Distance row: push label next to the value on the right */
-        .ctds-field--distance {
-            display: grid;                         /* keep grid */
-            grid-template-columns: 1fr auto auto;  /* spacer | label | value */
-            column-gap: var(--label-value-gap);    /* small gap between label & value */
-        }
-        .ctds-field--distance .ctds-label {
-            grid-column: 2;        /* place label in middle column */
-            margin-left: 0;        /* remove left rail offset */
-            justify-self: end;     /* tuck against the value */
-        }
-        .ctds-field--distance .ctds-value {
-            grid-column: 3;        /* value at far right */
-            justify-self: end;     
-        }
-
-        /* Time row: label next to value on the right */
-        .ctds-field--time {
-            display: grid;
-            grid-template-columns: 1fr auto auto; /* spacer | label | value */
-            column-gap: var(--label-value-gap);
-        }
-        .ctds-field--time .ctds-label {
-            grid-column: 2;
-            margin-left: 0;
-            justify-self: end;
-        }
-        .ctds-field--time .ctds-value {
-            grid-column: 3;
-            justify-self: end;
-        }
-
-        /* Speed row: label next to value on the right */
-        .ctds-field--speed {
-            display: grid;
-            grid-template-columns: 1fr auto auto; /* spacer | label | value */
-            column-gap: var(--label-value-gap);
-        }
-        .ctds-field--speed .ctds-label {
-            grid-column: 2;
-            margin-left: 0;
-            justify-self: end;
-        }
-        .ctds-field--speed .ctds-value {
-            grid-column: 3;
-            justify-self: end;
-        }
 
         .ctds-field--speed {
             margin-bottom: var(--gap-dynamic);
         }
 
-        .ctds-label {
+        .ctds-label{
             font-size: var(--font-size-label);
             font-weight: var(--font-weight-default);
             text-transform: uppercase;
             letter-spacing: var(--letter-spacing-label);
-            line-height: var(--line-height-label);
+            line-height: 1;
+            position: relative; top: 1px;   /* Handjet baseline nudge */
+            white-space: nowrap;
             margin-left: var(--label-left);
-            margin-bottom: var(--label-value-gap);
+            margin-bottom: 0;
         }
 
-        .ctds-value {
+        .ctds-value{
             font-family: var(--font-family);
             font-size: var(--font-size-display);
             font-weight: var(--font-weight-default);
             letter-spacing: var(--letter-spacing-display);
-            line-height: var(--line-height-display);
+            line-height: 1;
             text-align: right;
             direction: ltr;
-            margin-right: var(--value-right);
+            margin-right: 0px;
             background: transparent;
             border: none;
             color: var(--color-text);
             outline: none;
-            width: 200%;
-            padding: 0px;
+            /* Flex row sizing: hug content, never spill the rail */
+            flex: 0 1 auto;
+            min-width: 0;           /* iOS Safari shrink fix */
+            max-width: 100%;
+            width: auto;            /* kill previous width hacks */
+            font-variant-numeric: tabular-nums;
+            padding-inline-end: 0.1ch;  /* caret safety */
+            overflow: hidden;           /* guard sub‑px spill */
         }
 
         .ctds-value::placeholder {
@@ -339,52 +303,10 @@
             :root { --available: calc(min(100vh, var(--frame-height)) - var(--stack-fixed)); }
         }
 
-        /* --- Inline row layout for every field: [label | value] --- */
-        .ctds-field {
-            display: grid;
-            grid-template-columns: auto 1fr;     /* label sizes to content; value gets remaining space */
-            align-items: baseline;                /* true text baseline alignment */
-            column-gap: var(--label-value-gap);
-        }
-
-        /* Label: left rail, crisp baseline, no vertical stack margin */
-        .ctds-field > .ctds-label {
-            white-space: nowrap;
-            line-height: 1;
-            margin-left: var(--label-left);
-            margin-bottom: 0;
-        }
-
-        /* Value: right rail, fixed "digit box" width, no font shrinking */
-        .ctds-field > .ctds-value {
-            justify-self: end;
-            text-align: right;
-            line-height: var(--line-height-display);
-            width: var(--value-ch, 10ch);        /* number box sized in character units */
-            max-width: 100%;
-            margin-right: var(--value-right);
-            font-variant-numeric: tabular-nums;  /* consistent digit widths */
-            padding-inline-end: 0;           /* zero out logical end padding */
-            transition: width 140ms ease;        /* smooth resize on mode flip */
-        }
-
-        /* Number-box widths per field (fonts stay 96/20; we only size the box) */
-        .ctds-field--time     .ctds-value { --value-ch: 8ch; }  /* "HH:MM:SS" = 8 chars */
-        .ctds-field--distance .ctds-value { --value-ch: 6ch; }  /* "99.99" */
-
-        /* Mode-aware width for speed/pace */
-        .ctds-app[data-speed-mode="PACE"]  .ctds-field--speed .ctds-value { --value-ch: 6ch; } /* "MM:SS" */
-        .ctds-app[data-speed-mode="SPEED"] .ctds-field--speed .ctds-value { --value-ch: 6ch; } /* "99.99" */
-
         /* Remove ALL focus rings from pills + circles (product choice) */
         .ctds-toggle:focus,
         .ctds-circle:focus { 
             outline: none !important; 
-        }
-
-        /* Safety: if any older rule still stacks fields, this override wins */
-        .ctds-field.ctds-field { 
-            display: grid; 
         }
 
         /* widen the frame on desktop, keep mobile spec */
@@ -416,16 +338,54 @@
             border-right: 1px solid #FFF;  /* middle: only top/bottom borders */
         }
 
-        /* Optional: If Time value still feels wide, nudge box width a hair */
-        .ctds-field--time .ctds-value { 
-            --value-ch: 7.75ch; 
-            padding-inline-end: 0; 
+        /* --- Safety neutralizers --- */
+        .ctds-field{ grid-template-columns: unset !important; }
+        .ctds-field .ctds-value{ width: auto !important; }
+
+        /* --- Footer layout: stack on mobile, spread on wide --- */
+
+        /* 1) make the footer itself a flex container with a vertical stack by default */
+        .ctds-controls{
+            display:flex;
+            flex-direction:column;
+            gap: var(--toggles-to-circles);     /* keep your 24px token */
+            padding-inline: var(--toggle-mx);   /* same 24px side insets */
         }
 
-        /* Force fixed pixel width for Distance and Speed values */
-        .ctds-field--distance .ctds-value,
-        .ctds-field--speed .ctds-value {
-            width: 180px;              /* explicit fixed width */
+        /* 2) make each inner block flex nicely */
+        .ctds-toggle-row,
+        .ctds-circles{
+            flex: 1 1 auto;     /* allows them to grow/shrink */
+            margin-inline: 0;   /* kill previous inline margins so flex can rule */
+            width: auto;
+        }
+
+        /* keep existing behavior inside each row */
+        .ctds-toggle-row{ display:flex; }
+        .ctds-circles{ display:flex; justify-content: space-between; align-items:center; }
+
+
+        /* Footer stays stacked: toggles row on top, circles on bottom, full width */
+        .ctds-controls{ flex-direction: column; }
+        .ctds-toggle-row, .ctds-circles{ width: 100%; }
+        .ctds-toggle-row .ctds-toggle{ flex: 1 1 0; }
+
+        /* Distance value box: compact, stable width ~ just enough for 99.99 */
+        .ctds-field--distance > .ctds-value{
+            inline-size: 5ch !important;     /* approx width for 99.99 */
+            max-inline-size: 100%;
+        }
+
+        /* Speed value box: compact, stable width for MM:SS or 00.00 */
+        .ctds-field--speed > .ctds-value{
+            inline-size: 5ch !important;
+            max-inline-size: 100%;
+        }
+
+        /* Time value box: compact, stable width for HH:MM:SS */
+        .ctds-field--time > .ctds-value{
+            inline-size: 7.5ch !important;   /* fits 00:00:00 comfortably */
+            max-inline-size: 100%;
         }
     </style>
 </head>
