@@ -836,6 +836,32 @@
                     }
                 }
 
+                // --- keep speed/pace in sync when time & distance are known ---
+                {
+                    const tNow = this.parseTime(this.timeInput.value);
+                    const dNow = parseFloat(this.distanceInput.value) || 0;
+
+                    if (tNow > 0 && dNow > 0) {
+                        const vNew = dNow / (tNow / 3600); // units/hour
+                        const pNew = tNow / dNow;          // sec/unit
+
+                        const hasSpeed = !!(parseFloat(this.speedInput.value) || 0);
+                        const hasPace  = !!this.parsePace(this.paceInput.value);
+
+                        if (this.lastEdited === 'PACE') {
+                            // user is driving with pace; back-fill speed
+                            this.speedInput.value = Math.min(99.99, vNew).toFixed(2);
+                        } else if (this.lastEdited === 'SPEED') {
+                            // user is driving with speed; back-fill pace
+                            this.paceInput.value = this.formatPace(pNew);
+                        } else {
+                            // neither explicitly “last touched”: fill whichever is empty, or both
+                            if (!hasSpeed) this.speedInput.value = Math.min(99.99, vNew).toFixed(2);
+                            if (!hasPace)  this.paceInput.value  = this.formatPace(pNew);
+                        }
+                    }
+                }
+
                 const ann = document.getElementById('ann');
                 if (ann) ann.textContent = `Updated: time ${this.timeInput.value || '—'}, distance ${this.distanceInput.value || '—'}, speed ${this.speedInput.value || '—'}, pace ${this.paceInput.value || '—'}`;
                 
