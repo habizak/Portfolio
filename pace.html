@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200"/>
     <style>
         :root {
             /* Canvas */
@@ -68,15 +69,15 @@
 
             /* Total fixed stack (no inter-block gaps) */
             --stack-fixed: calc(
-                var(--time-top-offset) + (3 * var(--block-h)) + var(--footer-h) +
+                var(--time-top-offset) + (4 * var(--block-h)) + var(--footer-h) +
                 var(--safe-padding-top) + var(--safe-padding-bottom)
             );
 
-            /* Remaining height available for the three gaps */
+            /* Remaining height available for the four gaps */
             --available: calc(min(100dvh, var(--frame-height)) - var(--stack-fixed));
 
-            /* Dynamic gap: share the leftover evenly; never negative; cap at 64px */
-            --gap-dynamic: clamp(0px, calc(var(--available) / 3), 16px);
+            /* Dynamic gap: share the leftover evenly; never negative; cap at 16px */
+            --gap-dynamic: clamp(0px, calc(var(--available) / 4), 16px);
         }
 
         * {
@@ -113,7 +114,6 @@
             text-transform: uppercase;
             letter-spacing: var(--letter-spacing-label);
             line-height: var(--line-height-label);
-            padding-left: 24px;
         }
 
         .ctds-main { 
@@ -326,16 +326,14 @@
             margin-bottom: var(--gap-dynamic);
         }
 
-        /* Toggle row borders: middle only top/bottom (Figma) */
-        .ctds-toggle-row .ctds-toggle {
-            border: 1px solid #FFF;
+        .ctds-field--pace {
+            margin-bottom: var(--gap-dynamic);
         }
-        .ctds-toggle-row .ctds-toggle + .ctds-toggle {
-            border-left: none; /* collapse internal seams */
-        }
-        .ctds-toggle-row .ctds-toggle:nth-child(2) {
-            border-left: none;
-            border-right: 1px solid #FFF;  /* middle: only top/bottom borders */
+
+        /* Toggle row borders: 2-button layout */
+        .ctds-toggle-row .ctds-toggle{ border:1px solid #FFF; }
+        .ctds-toggle-row .ctds-toggle + .ctds-toggle{
+            border-left:none; box-shadow: inset 1px 0 0 0 #FFF;
         }
 
         /* --- Safety neutralizers --- */
@@ -428,7 +426,7 @@
             outline-offset: 2px;
         }
 
-        .ctds-reset-icon {
+        .ctds-reset .material-symbols-outlined {
             font-size: 20px;
             line-height: 1;
         }
@@ -438,6 +436,11 @@
             background-color: var(--color-active-circle-fill);
             color: var(--color-active-circle-label);
         }
+
+        /* Label colors */
+        .ctds-field--distance .ctds-label,
+        .ctds-field--speed .ctds-label,
+        .ctds-field--pace .ctds-label{ color:#FFC7C7; }
     </style>
 </head>
 <body>
@@ -496,7 +499,7 @@
 
             <div class="ctds-reset">
                 <button class="ctds-reset-btn" id="resetBtn">
-                    <span class="ctds-reset-icon">↻</span>
+                    <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
                     <span class="ctds-reset-text">RESET</span>
                 </button>
             </div>
@@ -511,6 +514,7 @@
                 this.target = 'TIME';
                 this.unitSystem = 'METRIC';
                 this.computeTimeout = null;
+                this.lastEdited = 'PACE';
                 
                 this.init();
                 this.loadState();
@@ -539,7 +543,11 @@
 
             attachEventListeners() {
                 [this.timeInput, this.distanceInput, this.speedInput, this.paceInput].forEach(input => {
-                    input.addEventListener('input', () => this.debouncedCompute());
+                    input.addEventListener('input', () => {
+                        if (input === this.paceInput) this.lastEdited = 'PACE';
+                        if (input === this.speedInput) this.lastEdited = 'SPEED';
+                        this.debouncedCompute();
+                    });
                     input.addEventListener('blur', () => this.handleBlur(input));
                 });
 
@@ -786,13 +794,17 @@
                 const speed = parseFloat(speedStr) || 0;
                 const pace = this.parsePace(paceStr);
                 
+                const hasV = speed > 0, hasP = pace > 0;
+                const pickPace  = (hasP && !hasV) || (hasP && hasV && this.lastEdited==='PACE');
+                const pickSpeed = (hasV && !hasP) || (hasP && hasV && this.lastEdited==='SPEED');
+                
                 if (this.target === 'TIME') {
                     if (distance > 0) {
-                        if (speed > 0) {
+                        if (pickSpeed) {
                             // Calculate from speed: time = distance / speed
                             const result = (distance / speed) * 3600;
                             this.timeInput.value = this.formatTime(result);
-                        } else if (pace > 0) {
+                        } else if (pickPace) {
                             // Calculate from pace: time = distance * pace
                             const result = distance * pace;
                             this.timeInput.value = this.formatTime(result);
@@ -800,11 +812,11 @@
                     }
                 } else if (this.target === 'DISTANCE') {
                     if (time > 0) {
-                        if (speed > 0) {
+                        if (pickSpeed) {
                             // Calculate from speed: distance = speed * (time / 3600)
                             const result = speed * (time / 3600);
                             this.distanceInput.value = Math.min(99.99, result).toFixed(2);
-                        } else if (pace > 0) {
+                        } else if (pickPace) {
                             // Calculate from pace: distance = time / pace
                             const result = time / pace;
                             this.distanceInput.value = Math.min(99.99, result).toFixed(2);
@@ -812,9 +824,10 @@
                     }
                 } else if (this.target === 'SPEED') {
                     if (time > 0 && distance > 0) {
-                        // Calculate speed: speed = distance / (time / 3600)
-                        const result = distance / (time / 3600);
-                        this.speedInput.value = Math.min(99.99, result).toFixed(2);
+                        const vNew = distance / (time / 3600);
+                        const pNew = time / distance;
+                        this.speedInput.value = Math.min(99.99, vNew).toFixed(2);
+                        this.paceInput.value  = this.formatPace(pNew);
                     }
                 }
 
