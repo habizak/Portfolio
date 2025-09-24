@@ -372,6 +372,15 @@
         .ctds-toggle-row, .ctds-circles{ width: 100%; }
         .ctds-toggle-row .ctds-toggle{ flex: 1 1 0; }
 
+        /* Pin footer to bottom on mobile and desktop */
+        .ctds-app { position: relative; }
+        .ctds-controls {
+            position: absolute;
+            left: var(--safe-padding-left);
+            right: var(--safe-padding-right);
+            bottom: env(safe-area-inset-bottom, 0);
+        }
+
         /* Distance value box: compact, stable width ~ just enough for 99.99 */
         .ctds-field--distance > .ctds-value{
             inline-size: 5ch !important;     /* approx width for 99.99 */
@@ -426,10 +435,7 @@
             opacity: 0.7;
         }
 
-        .ctds-reset-btn:focus {
-            outline: 2px solid rgba(255, 255, 255, 0.8);
-            outline-offset: 2px;
-        }
+        .ctds-reset-btn:focus { outline: none !important; }
 
         .ctds-reset .material-symbols-outlined {
             font-size: 20px;
