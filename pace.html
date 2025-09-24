@@ -387,6 +387,57 @@
             inline-size: 7.5ch !important;   /* fits 00:00:00 comfortably */
             max-inline-size: 100%;
         }
+
+        /* Pace value box: compact, stable width for MM:SS */
+        .ctds-field--pace > .ctds-value{
+            inline-size: 5ch !important;     /* fits 00:00 comfortably */
+            max-inline-size: 100%;
+        }
+
+        /* Reset button styling */
+        .ctds-reset {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .ctds-reset-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            color: var(--color-text);
+            font-family: var(--font-family);
+            font-size: var(--font-size-button);
+            font-weight: var(--font-weight-default);
+            text-transform: uppercase;
+            letter-spacing: var(--letter-spacing-button);
+            line-height: var(--line-height-button);
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            padding: 8px 0;
+        }
+
+        .ctds-reset-btn:hover {
+            opacity: 0.7;
+        }
+
+        .ctds-reset-btn:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.8);
+            outline-offset: 2px;
+        }
+
+        .ctds-reset-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* Toggle button active states */
+        .ctds-toggle.is-active {
+            background-color: var(--color-active-circle-fill);
+            color: var(--color-active-circle-label);
+        }
     </style>
 </head>
 <body>
@@ -413,10 +464,19 @@
             </div>
 
             <div class="ctds-field ctds-field--speed is-nontarget">
-                <label class="ctds-label" for="speedInput" id="speedLabel">MIN/KM</label>
+                <label class="ctds-label" for="speedInput" id="speedLabel">KM/H</label>
                 <input type="text" 
                        class="ctds-value" 
                        id="speedInput" 
+                       placeholder="00.00"
+                       inputmode="decimal">
+            </div>
+
+            <div class="ctds-field ctds-field--pace is-nontarget">
+                <label class="ctds-label" for="paceInput" id="paceLabel">MIN/KM</label>
+                <input type="text" 
+                       class="ctds-value" 
+                       id="paceInput" 
                        placeholder="00:00"
                        inputmode="numeric">
             </div>
@@ -425,14 +485,20 @@
         <footer class="ctds-controls">
             <div class="ctds-toggle-row">
                 <button class="ctds-toggle" id="unitToggle">METRIC</button>
-                <button class="ctds-toggle" id="speedToggle">PACE</button>
-                <button class="ctds-toggle" id="clearBtn">CLEAR</button>
+                <button class="ctds-toggle" id="imperialToggle">IMPERIAL</button>
             </div>
 
             <div class="ctds-circles">
                 <button class="ctds-circle is-active" id="timeBtn" aria-pressed="true">TIME</button>
                 <button class="ctds-circle" id="distanceBtn" aria-pressed="false">DISTANCE</button>
                 <button class="ctds-circle" id="speedBtn" aria-pressed="false">SPEED</button>
+            </div>
+
+            <div class="ctds-reset">
+                <button class="ctds-reset-btn" id="resetBtn">
+                    <span class="ctds-reset-icon">↻</span>
+                    <span class="ctds-reset-text">RESET</span>
+                </button>
             </div>
         </footer>
 
@@ -444,7 +510,6 @@
             constructor() {
                 this.target = 'TIME';
                 this.unitSystem = 'METRIC';
-                this.speedMode = 'PACE';
                 this.computeTimeout = null;
                 
                 this.init();
@@ -457,13 +522,15 @@
                 this.timeInput = document.getElementById('timeInput');
                 this.distanceInput = document.getElementById('distanceInput');
                 this.speedInput = document.getElementById('speedInput');
+                this.paceInput = document.getElementById('paceInput');
                 
                 this.distanceLabel = document.getElementById('distanceLabel');
                 this.speedLabel = document.getElementById('speedLabel');
+                this.paceLabel = document.getElementById('paceLabel');
                 
                 this.unitToggle = document.getElementById('unitToggle');
-                this.speedToggle = document.getElementById('speedToggle');
-                this.clearBtn = document.getElementById('clearBtn');
+                this.imperialToggle = document.getElementById('imperialToggle');
+                this.resetBtn = document.getElementById('resetBtn');
                 
                 this.timeBtn = document.getElementById('timeBtn');
                 this.distanceBtn = document.getElementById('distanceBtn');
@@ -471,14 +538,14 @@
             }
 
             attachEventListeners() {
-                [this.timeInput, this.distanceInput, this.speedInput].forEach(input => {
+                [this.timeInput, this.distanceInput, this.speedInput, this.paceInput].forEach(input => {
                     input.addEventListener('input', () => this.debouncedCompute());
                     input.addEventListener('blur', () => this.handleBlur(input));
                 });
 
-                this.unitToggle.addEventListener('click', () => this.toggleUnitSystem());
-                this.speedToggle.addEventListener('click', () => this.toggleSpeedMode());
-                this.clearBtn.addEventListener('click', () => this.clear());
+                this.unitToggle.addEventListener('click', () => this.setUnitSystem('METRIC'));
+                this.imperialToggle.addEventListener('click', () => this.setUnitSystem('IMPERIAL'));
+                this.resetBtn.addEventListener('click', () => this.clear());
 
                 this.timeBtn.addEventListener('click', () => this.setTarget('TIME'));
                 this.distanceBtn.addEventListener('click', () => this.setTarget('DISTANCE'));
@@ -499,7 +566,7 @@
                 if (input === this.timeInput) {
                     const auto = this.parseDigitsToTime(raw);
                     if (auto) input.value = auto;
-                } else if (input === this.speedInput && this.speedMode === 'PACE') {
+                } else if (input === this.paceInput) {
                     const auto = this.parseDigitsToPace(raw);
                     if (auto) input.value = auto;
                 }
@@ -535,11 +602,9 @@
                 } else if (input === this.distanceInput) {
                     value = this.normalizeDistance(value);
                 } else if (input === this.speedInput) {
-                    if (this.speedMode === 'PACE') {
-                        value = this.normalizePace(value);
-                    } else {
-                        value = this.normalizeVelocity(value);
-                    }
+                    value = this.normalizeVelocity(value);
+                } else if (input === this.paceInput) {
+                    value = this.normalizePace(value);
                 }
                 
                 input.value = value;
@@ -610,18 +675,10 @@
                 this.saveState();
             }
 
-            toggleUnitSystem() {
+            setUnitSystem(newSystem) {
                 const old = this.unitSystem;
-                this.unitSystem = this.unitSystem === 'METRIC' ? 'IMPERIAL' : 'METRIC';
+                this.unitSystem = newSystem;
                 this.convertUnits(old, this.unitSystem);
-                this.updateUI();
-                this.saveState();
-                this.compute();
-            }
-
-            toggleSpeedMode() {
-                this.speedMode = this.speedMode === 'PACE' ? 'SPEED' : 'PACE';
-                this.convertSpeedMode();
                 this.updateUI();
                 this.saveState();
                 this.compute();
@@ -638,42 +695,18 @@
                 }
 
                 if (this.speedInput.value) {
-                    if (this.speedMode === 'PACE') {
-                        const [mm, ss] = this.speedInput.value.split(':').map(n=>parseInt(n)||0);
-                        let total = mm*60 + ss;
-                        if (fromSystem==='METRIC' && toSystem==='IMPERIAL') total *= CF;
-                        else if (fromSystem==='IMPERIAL' && toSystem==='METRIC') total /= CF;
-                        this.speedInput.value = this.normalizePace(`${Math.floor(total/60)}:${Math.round(total%60)}`);
-                    } else {
-                        let v = parseFloat(this.speedInput.value) || 0;
-                        if (fromSystem==='METRIC' && toSystem==='IMPERIAL') v /= CF;
-                        else if (fromSystem==='IMPERIAL' && toSystem==='METRIC') v *= CF;
-                        this.speedInput.value = Math.min(99.99, v).toFixed(2);
-                    }
+                    let v = parseFloat(this.speedInput.value) || 0;
+                    if (fromSystem==='METRIC' && toSystem==='IMPERIAL') v /= CF;
+                    else if (fromSystem==='IMPERIAL' && toSystem==='METRIC') v *= CF;
+                    this.speedInput.value = Math.min(99.99, v).toFixed(2);
                 }
-            }
 
-            convertSpeedMode() {
-                if (!this.speedInput.value) return;
-                
-                if (this.speedMode === 'SPEED') {
-                    const paceStr = this.speedInput.value;
-                    const parts = paceStr.split(':');
-                    if (parts.length === 2) {
-                        const minutes = parseInt(parts[0]) || 0;
-                        const seconds = parseInt(parts[1]) || 0;
-                        const totalSeconds = minutes * 60 + seconds;
-                        if (totalSeconds > 0) {
-                            const speed = 3600 / totalSeconds;
-                            this.speedInput.value = Math.min(99.99, speed).toFixed(2);
-                        }
-                    }
-                } else {
-                    const speed = parseFloat(this.speedInput.value) || 0;
-                    if (speed > 0) {
-                        const paceSeconds = 3600 / speed;
-                        this.speedInput.value = this.formatPace(paceSeconds);
-                    }
+                if (this.paceInput.value) {
+                    const [mm, ss] = this.paceInput.value.split(':').map(n=>parseInt(n)||0);
+                    let total = mm*60 + ss;
+                    if (fromSystem==='METRIC' && toSystem==='IMPERIAL') total *= CF;
+                    else if (fromSystem==='IMPERIAL' && toSystem==='METRIC') total /= CF;
+                    this.paceInput.value = this.normalizePace(`${Math.floor(total/60)}:${Math.round(total%60)}`);
                 }
             }
 
@@ -681,10 +714,10 @@
                 this.timeInput.value = '';
                 this.distanceInput.value = '';
                 this.speedInput.value = '';
+                this.paceInput.value = '';
                 
                 this.target = 'TIME';
                 this.unitSystem = 'METRIC';
-                this.speedMode = 'PACE';
                 
                 this.updateUI();
                 this.saveState();
@@ -704,58 +737,33 @@
                     }
                 });
                 
-                [this.timeInput, this.distanceInput, this.speedInput].forEach(input => {
+                [this.timeInput, this.distanceInput, this.speedInput, this.paceInput].forEach(input => {
                     const isTarget = input.closest('.ctds-field').classList.contains('is-target');
                     input.disabled = isTarget;
                     input.setAttribute('aria-disabled', isTarget.toString());
                 });
                 
+                // Update labels based on unit system
                 this.distanceLabel.textContent = this.unitSystem === 'METRIC' ? 'KM' : 'MI';
+                this.speedLabel.textContent = this.unitSystem === 'METRIC' ? 'KM/H' : 'MPH';
+                this.paceLabel.textContent = this.unitSystem === 'METRIC' ? 'MIN/KM' : 'MIN/MI';
                 
-                // Dynamic Speed/Pace field behavior
-                const speedLabel = document.getElementById('speedLabel');
-                const speedInput = document.getElementById('speedInput');
-                if (this.speedMode === 'PACE') {
-                    if (this.unitSystem === 'METRIC') {
-                        speedLabel.textContent = 'MIN/KM';
-                        speedInput.placeholder = '00:00';
-                    } else {
-                        speedLabel.textContent = 'MIN/MI';
-                        speedInput.placeholder = '00:00';
-                    }
-                } else { // SPEED mode
-                    if (this.unitSystem === 'METRIC') {
-                        speedLabel.textContent = 'KM/H';
-                        speedInput.placeholder = '00.00';
-                    } else {
-                        speedLabel.textContent = 'MPH';
-                        speedInput.placeholder = '00.00';
-                    }
-                }
+                // Set input modes and patterns
+                this.timeInput.setAttribute('inputmode', 'numeric');
+                this.timeInput.setAttribute('pattern', '\\d{1,2}:\\d{2}:\\d{2}');
                 
-                // Set input modes and patterns based on field type and mode
-                if (this.speedMode === 'PACE') {
-                    speedInput.setAttribute('inputmode', 'numeric');
-                    speedInput.setAttribute('pattern', '\\d{1,2}:\\d{2}');
-                } else {
-                    speedInput.setAttribute('inputmode', 'decimal');
-                    speedInput.removeAttribute('pattern');
-                }
+                this.distanceInput.setAttribute('inputmode', 'decimal');
+                this.distanceInput.removeAttribute('pattern');
                 
-                // Time input gets numeric mode and pattern when editable
-                if (!this.timeInput.disabled) {
-                    this.timeInput.setAttribute('inputmode', 'numeric');
-                    this.timeInput.setAttribute('pattern', '\\d{1,2}:\\d{2}:\\d{2}');
-                } else {
-                    this.timeInput.removeAttribute('inputmode');
-                    this.timeInput.removeAttribute('pattern');
-                }
+                this.speedInput.setAttribute('inputmode', 'decimal');
+                this.speedInput.removeAttribute('pattern');
                 
-                this.unitToggle.textContent = this.unitSystem;
-                this.speedToggle.textContent = this.speedMode;
+                this.paceInput.setAttribute('inputmode', 'numeric');
+                this.paceInput.setAttribute('pattern', '\\d{1,2}:\\d{2}');
                 
-                // Let CSS know current speed mode so the speed field can auto-resize
-                document.querySelector('.ctds-app')?.setAttribute('data-speed-mode', this.speedMode);
+                // Update toggle button states
+                this.unitToggle.classList.toggle('is-active', this.unitSystem === 'METRIC');
+                this.imperialToggle.classList.toggle('is-active', this.unitSystem === 'IMPERIAL');
                 
                 [this.timeBtn, this.distanceBtn, this.speedBtn].forEach(btn => {
                     btn.classList.remove('is-active');
@@ -771,45 +779,47 @@
                 const timeStr = this.timeInput.value;
                 const distanceStr = this.distanceInput.value;
                 const speedStr = this.speedInput.value;
+                const paceStr = this.paceInput.value;
                 
                 const time = this.parseTime(timeStr);
                 const distance = parseFloat(distanceStr) || 0;
-                const speed = this.speedMode === 'PACE' ? this.parsePace(speedStr) : parseFloat(speedStr) || 0;
+                const speed = parseFloat(speedStr) || 0;
+                const pace = this.parsePace(paceStr);
                 
                 if (this.target === 'TIME') {
-                    if (distance > 0 && speed > 0) {
-                        let result;
-                        if (this.speedMode === 'PACE') {
-                            result = distance * speed;
-                        } else {
-                            result = (distance / speed) * 3600;
+                    if (distance > 0) {
+                        if (speed > 0) {
+                            // Calculate from speed: time = distance / speed
+                            const result = (distance / speed) * 3600;
+                            this.timeInput.value = this.formatTime(result);
+                        } else if (pace > 0) {
+                            // Calculate from pace: time = distance * pace
+                            const result = distance * pace;
+                            this.timeInput.value = this.formatTime(result);
                         }
-                        this.timeInput.value = this.formatTime(result);
                     }
                 } else if (this.target === 'DISTANCE') {
-                    if (time > 0 && speed > 0) {
-                        let result;
-                        if (this.speedMode === 'PACE') {
-                            result = time / speed;
-                        } else {
-                            result = speed * (time / 3600);
+                    if (time > 0) {
+                        if (speed > 0) {
+                            // Calculate from speed: distance = speed * (time / 3600)
+                            const result = speed * (time / 3600);
+                            this.distanceInput.value = Math.min(99.99, result).toFixed(2);
+                        } else if (pace > 0) {
+                            // Calculate from pace: distance = time / pace
+                            const result = time / pace;
+                            this.distanceInput.value = Math.min(99.99, result).toFixed(2);
                         }
-                        this.distanceInput.value = Math.min(99.99, result).toFixed(2);
                     }
                 } else if (this.target === 'SPEED') {
                     if (time > 0 && distance > 0) {
-                        if (this.speedMode === 'PACE') {
-                            const result = time / distance;
-                            this.speedInput.value = this.formatPace(result);
-                        } else {
-                            const result = distance / (time / 3600);
-                            this.speedInput.value = Math.min(99.99, result).toFixed(2);
-                        }
+                        // Calculate speed: speed = distance / (time / 3600)
+                        const result = distance / (time / 3600);
+                        this.speedInput.value = Math.min(99.99, result).toFixed(2);
                     }
                 }
 
                 const ann = document.getElementById('ann');
-                if (ann) ann.textContent = `Updated: time ${this.timeInput.value || '—'}, distance ${this.distanceInput.value || '—'}, ${this.speedMode==='PACE' ? 'pace' : 'speed'} ${this.speedInput.value || '—'}`;
+                if (ann) ann.textContent = `Updated: time ${this.timeInput.value || '—'}, distance ${this.distanceInput.value || '—'}, speed ${this.speedInput.value || '—'}, pace ${this.paceInput.value || '—'}`;
                 
                 this.saveState();
             }
@@ -856,11 +866,11 @@
                 const state = {
                     target: this.target,
                     unitSystem: this.unitSystem,
-                    speedMode: this.speedMode,
                     values: {
                         time: this.timeInput.value,
                         distance: this.distanceInput.value,
-                        speed: this.speedInput.value
+                        speed: this.speedInput.value,
+                        pace: this.paceInput.value
                     }
                 };
                 localStorage.setItem('pace-calculator-state', JSON.stringify(state));
@@ -873,12 +883,12 @@
                         const state = JSON.parse(saved);
                         this.target = state.target || 'TIME';
                         this.unitSystem = state.unitSystem || 'METRIC';
-                        this.speedMode = state.speedMode || 'PACE';
                         
                         if (state.values) {
                             if (state.values.time) this.timeInput.value = state.values.time;
                             if (state.values.distance) this.distanceInput.value = state.values.distance;
                             if (state.values.speed) this.speedInput.value = state.values.speed;
+                            if (state.values.pace) this.paceInput.value = state.values.pace;
                         }
                     }
                 } catch (e) {
