@@ -468,6 +468,9 @@
             .ctds-field--speed .ctds-label,
             .ctds-field--pace .ctds-label { color:#FFF; }
         }
+    @media (max-width: 480px) {
+      :root { --circle-d: 88px; }
+    }
     </style>
 </head>
 <body>
@@ -793,55 +796,67 @@
             }
 
             updateUI() {
-                document.querySelectorAll('.ctds-field').forEach(field => {
-                    field.classList.remove('is-target', 'is-nontarget');
-                });
-                
-                const targetField = document.querySelector(`.ctds-field--${this.target.toLowerCase()}`);
-                targetField.classList.add('is-target');
-                
-                document.querySelectorAll('.ctds-field').forEach(field => {
-                    if (!field.classList.contains('is-target')) {
-                        field.classList.add('is-nontarget');
-                    }
-                });
-                
+                // reset target/nontarget markers
+                const allFields = Array.from(document.querySelectorAll('.ctds-field'));
+                allFields.forEach(f => f.classList.remove('is-target', 'is-nontarget'));
+
+                const timeField = document.querySelector('.ctds-field--time');
+                const distanceField = document.querySelector('.ctds-field--distance');
+                const speedField = document.querySelector('.ctds-field--speed');
+                const paceField = document.querySelector('.ctds-field--pace');
+
+                if (this.target === 'TIME') {
+                    timeField.classList.add('is-target');
+                } else if (this.target === 'DISTANCE') {
+                    distanceField.classList.add('is-target');
+                } else if (this.target === 'SPEED') {
+                    // lock BOTH speed and pace (both are derived from time + distance)
+                    speedField.classList.add('is-target');
+                    paceField.classList.add('is-target');
+                }
+
+                // Non-targets are editable but dimmed
+                allFields.forEach(f => { if (!f.classList.contains('is-target')) f.classList.add('is-nontarget'); });
+
+                // Enable/disable inputs based on target flags
                 [this.timeInput, this.distanceInput, this.speedInput, this.paceInput].forEach(input => {
                     const isTarget = input.closest('.ctds-field').classList.contains('is-target');
                     input.disabled = isTarget;
-                    input.setAttribute('aria-disabled', isTarget.toString());
+                    input.setAttribute('aria-disabled', String(isTarget));
                 });
-                
+
                 // Update labels based on unit system
                 this.distanceLabel.textContent = this.unitSystem === 'METRIC' ? 'KM' : 'MI';
                 this.speedLabel.textContent = this.unitSystem === 'METRIC' ? 'KM/H' : 'MPH';
                 this.paceLabel.textContent = this.unitSystem === 'METRIC' ? 'MIN/KM' : 'MIN/MI';
-                
+
                 // Set input modes and patterns
                 this.timeInput.setAttribute('inputmode', 'numeric');
                 this.timeInput.setAttribute('pattern', '\\d{1,2}:\\d{2}:\\d{2}');
-                
+
                 this.distanceInput.setAttribute('inputmode', 'decimal');
                 this.distanceInput.removeAttribute('pattern');
-                
+
                 this.speedInput.setAttribute('inputmode', 'decimal');
                 this.speedInput.removeAttribute('pattern');
-                
+
                 this.paceInput.setAttribute('inputmode', 'numeric');
                 this.paceInput.setAttribute('pattern', '\\d{1,2}:\\d{2}');
-                
-                // Update toggle button states
+
+                // Update unit button states
                 this.unitToggle.classList.toggle('is-active', this.unitSystem === 'METRIC');
                 this.imperialToggle.classList.toggle('is-active', this.unitSystem === 'IMPERIAL');
-                
+
+                // Update circle buttons
                 [this.timeBtn, this.distanceBtn, this.speedBtn].forEach(btn => {
                     btn.classList.remove('is-active');
                     btn.setAttribute('aria-pressed', 'false');
                 });
-                
                 const activeBtn = document.getElementById(`${this.target.toLowerCase()}Btn`);
-                activeBtn.classList.add('is-active');
-                activeBtn.setAttribute('aria-pressed', 'true');
+                if (activeBtn) {
+                    activeBtn.classList.add('is-active');
+                    activeBtn.setAttribute('aria-pressed', 'true');
+                }
             }
 
             compute() {

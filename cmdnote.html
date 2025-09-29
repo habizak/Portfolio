@@ -761,13 +761,24 @@ Just type and press Enter to add a note.
     // Input events
     input.oninput = () => autoResize(input);
     input.onblur = () => shrinkComposer(input);
-    input.onkeydown = e => {
-      // Default Enter = newline; submit with Cmd/Ctrl+Enter
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        exec();
-      }
-    };
+input.onkeydown = e => {
+  // On desktop: Enter submits. On mobile: Enter = newline, submit with Cmd/Ctrl+Enter.
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  if (e.key === 'Enter') {
+    if (isMobile) {
+      // Let Enter insert a newline on mobile
+      return;
+    } else if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
+      // Plain Enter on desktop = submit
+      e.preventDefault();
+      exec();
+    } else if (e.metaKey || e.ctrlKey) {
+      // Keep Cmd/Ctrl+Enter as submit fallback
+      e.preventDefault();
+      exec();
+    }
+  }
+};
     
     // Button events
     $('exec-btn').onclick = exec;
