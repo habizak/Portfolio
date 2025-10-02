@@ -83,6 +83,26 @@
     .theme-dark #note-notification { color: #ddd; }
     .theme-dark .action-btn { color: #ddd; }
     .theme-dark .action-btn:hover { background: #ffffff; color: #0f1115; }
+    #scroll-bottom-btn {
+      position: fixed;
+      bottom: 184px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #333;
+      color: #fff;
+      font-family: 'Material Symbols Outlined';
+      font-size: 24px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+    }
+    #scroll-bottom-btn.show { display: flex; }
+    .theme-dark #scroll-bottom-btn { background: #e6e6e6; color: #111; }
   </style>
 </head>
 <body>
@@ -96,12 +116,13 @@
       <div id="note-notification" role="status" aria-live="polite">[+] Note added. <span class="view-text">View</span></div>
     </div>
   </div>
-  
+  <button id="scroll-bottom-btn">arrow_downward</button>
   <script>
 let notes = [], searchResults = null;
 let lastDeleted = null;
 const $ = id => document.getElementById(id);
 const container = $('note-container'), input = $('cmd-input'), notification = $('note-notification');
+const scrollBtn = document.getElementById('scroll-bottom-btn');
 
 // Rotating poetic placeholders (Rumi-inspired)
 const PLACEHOLDERS = [
@@ -809,6 +830,20 @@ input.onkeydown = e => {
     // Optional tiny a11y nicety: ARIA label for execute button
     const execBtnEl = $('exec-btn');
     if (execBtnEl) execBtnEl.setAttribute('aria-label','Execute command');
+    // Show/hide scroll-to-bottom button when not at bottom
+    container.addEventListener('scroll', () => {
+      const atBottom = isAtBottom();
+      if (!atBottom) {
+        scrollBtn.classList.add('show');
+      } else {
+        scrollBtn.classList.remove('show');
+      }
+    });
+
+    // Scroll to bottom on button click
+    scrollBtn.addEventListener('click', () => {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    });
     // Initialize
     notes = load();
     setRandomPlaceholder();
